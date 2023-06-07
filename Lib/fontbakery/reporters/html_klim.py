@@ -26,7 +26,7 @@ class KlimHtmlReporter(HTMLReporter):
         print(f'A report in HTML format has been saved to "{self.output_file}"')
 
     def get_html(self) -> str:
-        with open("frontend/vue-report.html") as f:
+        with open("./frontend/vue-report.html") as f:
             return f"""
               <script>const checkData = {json.dumps(self.getdoc(), sort_keys=True)};</script>
               {f.read()}
