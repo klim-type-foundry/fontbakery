@@ -24,10 +24,7 @@ class KlimHtmlReporter(HTMLReporter):
             "report.html",
         )
         with open(html_path) as f:
-            return f"""
-              <script>const checkData = {json.dumps(self.getdoc(), sort_keys=True)};</script>
-              {f.read()}
-            """
+            return f"""<script>const checkData = {json.dumps(self.getdoc(), sort_keys=True)};</script>\n{f.read()}"""
         #
         # return f"""
         # <script type="importmap">
