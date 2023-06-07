@@ -1,29 +1,20 @@
-"""Reporter class that renders report as a HTML document."""
+"""Reporter class that renders report as an HTML document."""
 
 import collections
+import json
 import html
 from typing import List, Dict
 import cmarkgfm
 from cmarkgfm.cmark import Options as cmarkgfmOptions
 
 
-from fontbakery.reporters.serialize import SerializeReporter
+from fontbakery.reporters.html import HTMLReporter, EMOTICON, LOGLEVELS
 from fontbakery.utils import unindent_and_unwrap_rationale, html5_collapsible
 
-LOGLEVELS = ["ERROR", "FAIL", "WARN", "SKIP", "INFO", "PASS", "DEBUG"]
-EMOTICON = {
-    "ERROR": "💥",
-    "FAIL": "🔥",
-    "WARN": "⚠️",
-    "INFO": "ℹ️",
-    "SKIP": "⏩",
-    "PASS": "✅",
-    "DEBUG": "🔎"
-}
 ISSUE_URL = "https://github.com/googlefonts/fontbakery/issues"
 
 
-class KlimHtmlReporter(SerializeReporter):
+class KlimHtmlReporter(HTMLReporter):
     """Renders a report as a HTML document."""
 
     def write(self):
@@ -31,10 +22,35 @@ class KlimHtmlReporter(SerializeReporter):
             fh.write(self.get_html())
         print(f'A report in HTML format has been saved to "{self.output_file}"')
 
-
     def get_html(self) -> str:
         """Return complete report as a HTML string."""
-        data = self.getdoc()
+
+        return f"""
+        <script type="importmap">
+          {{
+            "imports": {{
+              "vue": "https://unpkg.com/vue@3/dist/vue.esm-browser.js"
+            }}
+          }}
+        </script>
+
+        <div id="app">{{{{ message }}}}</div>
+
+        <script>{json.dumps(self.getdoc())}</script>
+
+        <script type="module">
+          import {{ createApp }} from 'vue'
+
+          createApp({{
+            data() {{
+              return {{
+                message: 'Hello Font Bakery!'
+              }}
+            }}
+          }}).mount('#app')
+        </script>
+        """
+
         num_checks = 0
         body_elements = []
 
@@ -62,14 +78,14 @@ class KlimHtmlReporter(SerializeReporter):
                 for check in cluster:
                     checks_by_id[check["key"][1]].append(check)
             for check, results in checks_by_id.items():
-                if all([self.omit_loglevel(result['result']) for result in results]):
+                if all([self.omit_loglevel(result["result"]) for result in results]):
                     continue
                 check_name = html.escape(check)
                 body_elements.append(f"<h3>{results[0]['description']}</h3>")
                 body_elements.append(f"<div>Check ID: {check_name}</div>")
                 body_elements.append(self.render_rationale(results[0], check))
                 for result in results:
-                    if self.omit_loglevel(result['result']):
+                    if self.omit_loglevel(result["result"]):
                         continue
                     if "filename" in result:
                         body_elements.append(
@@ -117,9 +133,9 @@ class KlimHtmlReporter(SerializeReporter):
     def render_rationale(self, check, checkid) -> str:
         if self.succinct or "rationale" not in check:
             return ""
-        content = unindent_and_unwrap_rationale(check['rationale'], checkid)
+        content = unindent_and_unwrap_rationale(check["rationale"], checkid)
         return cmarkgfm.markdown_to_html(
-                content, options=cmarkgfmOptions.CMARK_OPT_UNSAFE
+            content, options=cmarkgfmOptions.CMARK_OPT_UNSAFE
         )
 
     def log_html(self, log) -> str:
@@ -212,7 +228,14 @@ def html5_document(body_elements) -> str:
 
 
 def summary_table(
-    errors: int, fails: int, warns: int, skips: int, infos: int, passes: int, debugs: int, total: int
+    errors: int,
+    fails: int,
+    warns: int,
+    skips: int,
+    infos: int,
+    passes: int,
+    debugs: int,
+    total: int,
 ) -> str:
     """Return summary table with statistics."""
 
