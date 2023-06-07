@@ -34,9 +34,7 @@ class KlimHtmlReporter(HTMLReporter):
           }}
         </script>
 
-        <div id="app">{{{{ message }}}}<br /><br />{{{{ checkData }}}}</div>
-
-        <script>const checkData = JSON.parse('{json.dumps(self.getdoc(), sort_keys=True)}');</script>
+        <div id="app">{{{{ message }}}}<br /><br /><pre>{{{{ checkData }}}}</pre></div>
 
         <script type="module">
           import {{ createApp }} from 'vue'
@@ -45,7 +43,7 @@ class KlimHtmlReporter(HTMLReporter):
             data() {{
               return {{
                 message: `Hello Font Bakery!`,
-                checkData,
+                checkData: {json.dumps(self.getdoc(), sort_keys=True)}
               }}
             }}
           }}).mount('#app')
