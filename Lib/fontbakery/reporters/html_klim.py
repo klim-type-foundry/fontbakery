@@ -20,7 +20,8 @@ class KlimHtmlReporter(HTMLReporter):
             os.path.dirname(os.path.dirname(__file__)),
             "data",
             "vue_frontend",
-            "report.dist.html",
+            "dist",
+            "report.html",
         )
         with open(html_path) as f:
             return f"""

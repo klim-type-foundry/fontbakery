@@ -1,3 +1,15 @@
+<script src="https://cdn.tailwindcss.com?plugins=typography"></script>
+<script>
+  // tailwind.config = {
+  //   theme: {
+  //     extend: {
+  //       colors: {
+  //         clifford: '#da373d',
+  //       }
+  //     }
+  //   }
+  // }
+</script>
 <script type="importmap">
   {
     "imports": {
@@ -6,7 +18,10 @@
   }
 </script>
 
-<div id="app">{{ message }}<br /><br /><pre>{{ checkData }}</pre></div>
+<div id="app">
+  <h1>{{ message }}</h1>
+  <pre>{{ checkData }}</pre>
+</div>
 
 <script type="module">
   import { createApp } from 'vue';

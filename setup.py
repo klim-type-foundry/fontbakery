@@ -52,7 +52,7 @@ setup(
         "fontbakery": [
             "data/*.cache",
             "data/googlefonts/*_exceptions.txt",
-            "data/vue_frontend/report.dist.html",
+            "data/vue_frontend/dist/report.html",
         ]
     },
     classifiers=[
