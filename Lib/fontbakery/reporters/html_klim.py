@@ -14,6 +14,9 @@ from fontbakery.utils import unindent_and_unwrap_rationale, html5_collapsible
 ISSUE_URL = "https://github.com/googlefonts/fontbakery/issues"
 
 
+PRODUCTION_JS = False
+
+
 class KlimHtmlReporter(HTMLReporter):
     """Renders a report as a HTML document."""
 
@@ -29,7 +32,7 @@ class KlimHtmlReporter(HTMLReporter):
         <script type="importmap">
           {{
             "imports": {{
-              "vue": "https://unpkg.com/vue@3/dist/vue.esm-browser.js"
+              "vue": "https://unpkg.com/vue@3/dist/vue.esm-browser{'.prod' if PRODUCTION_JS else ''}.js"
             }}
           }}
         </script>
@@ -37,7 +40,7 @@ class KlimHtmlReporter(HTMLReporter):
         <div id="app">{{{{ message }}}}<br /><br /><pre>{{{{ checkData }}}}</pre></div>
 
         <script type="module">
-          import {{ createApp }} from 'vue'
+          import {{ createApp }} from 'vue';
 
           createApp({{
             data() {{
@@ -46,6 +49,6 @@ class KlimHtmlReporter(HTMLReporter):
                 checkData: {json.dumps(self.getdoc(), sort_keys=True)}
               }}
             }}
-          }}).mount('#app')
+          }}).mount('#app');
         </script>
         """
