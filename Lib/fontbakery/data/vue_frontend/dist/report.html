@@ -19,8 +19,17 @@
 </script>
 
 <div id="app">
-  <h1>{{ message }}</h1>
-  <pre>{{ checkData }}</pre>
+    <h1 class="text-5xl">Font Bakery results</h1>
+
+    <div v-for="section in checkData.sections">
+        <h2 class="text-3xl">{{ section.key[0] }}</h2>
+        <div v-for="check in section.checks">
+            <h3 class="text-2xl">{{ check.description }}</h3>
+            <h3 class="text-1xl">{{ check.filename }}</h3>
+        </div>
+    </div>
+
+    <pre>{{ checkData }}</pre>
 </div>
 
 <script type="module">
@@ -47,7 +56,6 @@
   createApp({
     data() {
       return {
-        message: `Hello Font Bakery!`,
         checkData,
       }
     }
