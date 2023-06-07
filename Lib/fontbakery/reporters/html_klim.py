@@ -1,18 +1,8 @@
 """Reporter class that renders report as an HTML document."""
 
-import collections
+import os
 import json
-import html
-from typing import List, Dict
-import cmarkgfm
-from cmarkgfm.cmark import Options as cmarkgfmOptions
-
-
-from fontbakery.reporters.html import HTMLReporter, EMOTICON, LOGLEVELS
-from fontbakery.utils import unindent_and_unwrap_rationale, html5_collapsible
-
-ISSUE_URL = "https://github.com/googlefonts/fontbakery/issues"
-
+from fontbakery.reporters.html import HTMLReporter
 
 PRODUCTION_JS = False
 
@@ -26,7 +16,10 @@ class KlimHtmlReporter(HTMLReporter):
         print(f'A report in HTML format has been saved to "{self.output_file}"')
 
     def get_html(self) -> str:
-        with open("./frontend/vue-report.html") as f:
+        html_path = os.path.join(
+            os.path.dirname(__file__), "frontend", "vue-report.html"
+        )
+        with open(html_path) as f:
             return f"""
               <script>const checkData = {json.dumps(self.getdoc(), sort_keys=True)};</script>
               {f.read()}
