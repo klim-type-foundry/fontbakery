@@ -2,8 +2,6 @@
 import { onServerPrefetch, onMounted } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useFontBakeryData } from '@/stores/useFontBakeryData';
-// import HelloWorld from './components/HelloWorld.vue';
-// import TheWelcome from './components/TheWelcome.vue';
 import CheckStatusFilter from '@/components/CheckStatusFilter.vue';
 
 const fontBakeryDataStore = useFontBakeryData();
@@ -31,9 +29,7 @@ onMounted(() => {
         </div>
     </header>
 
-    <main>
-        <!--        <TheWelcome />-->
-    </main>
+    <main>TODO</main>
 </template>
 
 <style scoped>
