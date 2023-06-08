@@ -19,6 +19,7 @@ class KlimHtmlReporter(HTMLReporter):
         html_path = os.path.join(
             os.path.dirname(os.path.dirname(__file__)),
             "frontend_spa_report",
+            "dist",
             "index.html",
         )
         json_data_string = json.dumps(self.getdoc(), sort_keys=True)
