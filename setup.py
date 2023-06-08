@@ -61,7 +61,7 @@ setup(
         "fontbakery": [
             "data/*.cache",
             "data/googlefonts/*_exceptions.txt",
-            "data/report-spa.html",
+            "frontend_spa_report/dist/index.html",
         ]
     },
     classifiers=[
