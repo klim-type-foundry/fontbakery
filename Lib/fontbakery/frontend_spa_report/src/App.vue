@@ -4,17 +4,13 @@ import { storeToRefs } from 'pinia';
 import { useFontBakeryData } from '@/stores/useFontBakeryData';
 import CheckStatusFilter from '@/components/CheckStatusFilter.vue';
 
+// Load the initial Font Bakery data into the store
 const fontBakeryDataStore = useFontBakeryData();
-const { result: fontBakeryResults, sections: fontBakerySections } =
-    storeToRefs(fontBakeryDataStore);
+onServerPrefetch(fontBakeryDataStore.fetchFontBakeryData);
+onMounted(fontBakeryDataStore.fetchFontBakeryData);
 
-const loadFontBakeryData = async () => {
-    await fontBakeryDataStore.fetchFontBakeryData();
-};
-onServerPrefetch(loadFontBakeryData);
-onMounted(() => {
-    loadFontBakeryData();
-});
+// Debug output
+const { sections: fontBakerySections } = storeToRefs(fontBakeryDataStore);
 </script>
 
 <template>
@@ -24,7 +20,7 @@ onMounted(() => {
                 <h1>Font Bakery report</h1>
                 <div class="ikon">× + ⤓ ○ ◉ ⊖ □ ☑ ⊟ ↑ → ▼ ▲ ◑ ⇗ ⭯ ⭍</div>
                 <CheckStatusFilter />
-                <h3>{{ fontBakerySections }}</h3>
+                <pre>{{ fontBakerySections }}</pre>
             </div>
         </div>
     </header>

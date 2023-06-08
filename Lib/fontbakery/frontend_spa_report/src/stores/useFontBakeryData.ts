@@ -28,7 +28,7 @@ export const useFontBakeryData = defineStore('fontBakeryData', {
         setStatusFilter(statuses: FontBakeryStatus[]) {
             this.filters.status = statuses;
         },
-        async fetchFontBakeryData() {
+        fetchFontBakeryData() {
             if (import.meta.env.DEV) {
                 // In development, load the imported test data
                 this.result = devFontBakeryData.result;
