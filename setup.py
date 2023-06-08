@@ -13,22 +13,12 @@
 # limitations under the License.
 #
 # See AUTHORS.txt for the list of Authors and LICENSE.txt for the License.
-
-import os
-import shutil
 from setuptools import setup
 
 try:
     readme = open("README.md").read()
 except IOError:
     readme = ""
-
-
-# Copy SPA report HTML into package
-shutil.copy(
-    os.path.join(os.path.dirname(__file__), "frontend_spa_report/dist/index.html"),
-    os.path.join(os.path.dirname(__file__), "Lib/fontbakery/data/report-spa.html"),
-)
 
 setup(
     name="fontbakery",
