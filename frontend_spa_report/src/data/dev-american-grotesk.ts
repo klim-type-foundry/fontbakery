@@ -1,4 +1,4 @@
-const data: FontBakeryData = {
+const data: Pick<FontBakeryData, 'result' | 'sections'> = {
     result: { ERROR: 10, FAIL: 2, PASS: 56, WARN: 12 },
     sections: [
         {
