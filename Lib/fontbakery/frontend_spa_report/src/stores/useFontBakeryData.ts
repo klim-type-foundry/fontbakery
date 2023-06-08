@@ -1,13 +1,14 @@
 import { defineStore } from 'pinia';
 import devFontBakeryData from '@/data/dev-american-grotesk';
-import { FontBakeryStatusOptions } from '@/Settings';
+import getFontBakerySectionKeys from '@/utils/getFontBakerySectionKeys';
+import getFontBakeryStatuses from '@/utils/getFontBakeryStatuses';
 
 export const useFontBakeryData = defineStore('fontBakeryData', {
     state: (): FontBakeryData => ({
         result: {},
         sections: [],
         filters: {
-            status: FontBakeryStatusOptions,
+            status: [],
             sectionKey: [],
         },
     }),
@@ -16,14 +17,14 @@ export const useFontBakeryData = defineStore('fontBakeryData', {
             state.sections.find((section) => section.key[0] === key),
     },
     actions: {
-        clearSectionKeyFilter() {
-            this.filters.sectionKey = [];
+        resetSectionKeyFilter() {
+            this.filters.sectionKey = getFontBakerySectionKeys(this.sections);
         },
         setSectionKeyFilter(sectionKeys: string[]) {
             this.filters.sectionKey = sectionKeys;
         },
-        clearStatusFilter() {
-            this.filters.status = [];
+        resetStatusFilter() {
+            this.filters.status = getFontBakeryStatuses(this.result);
         },
         setStatusFilter(statuses: FontBakeryStatus[]) {
             this.filters.status = statuses;
@@ -40,6 +41,13 @@ export const useFontBakeryData = defineStore('fontBakeryData', {
                 // @ts-ignore TODO: fix window.fontBakeryData TS
                 this.sections = window.fontBakeryData.sections;
             }
+            // // Sort all the result statuses
+            // this.sections.forEach((section) => {
+            //   section.result
+            // })
+            // Default to showing all statuses and sections
+            this.resetSectionKeyFilter();
+            this.resetStatusFilter();
         },
     },
 });

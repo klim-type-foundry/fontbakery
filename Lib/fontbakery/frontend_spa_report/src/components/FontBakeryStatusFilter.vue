@@ -1,17 +1,18 @@
 <script setup lang="ts">
 import { storeToRefs } from 'pinia';
 import { useFontBakeryData } from '@/stores/useFontBakeryData';
-import { FontBakeryStatusOptions } from '@/Settings';
+import formatFontBakeryStatus from '@/utils/formatFontBakeryStatus';
+import getFontBakeryStatuses from '@/utils/getFontBakeryStatuses';
 
 const fontBakeryDataStore = useFontBakeryData();
-const { result: fontBakeryResults, filters: fontBakeryFilters } = storeToRefs(fontBakeryDataStore);
+const { result: fontBakeryResults } = storeToRefs(fontBakeryDataStore);
 </script>
 
 <template>
-    <h2>Result statuses</h2>
+    <h3>Statuses</h3>
     <ul>
         <template
-            v-for="fontBakeryStatusOption in FontBakeryStatusOptions"
+            v-for="fontBakeryStatusOption in getFontBakeryStatuses(fontBakeryResults)"
             :key="fontBakeryStatusOption"
         >
             <li v-if="fontBakeryStatusOption in fontBakeryResults">
@@ -21,12 +22,12 @@ const { result: fontBakeryResults, filters: fontBakeryFilters } = storeToRefs(fo
                         :value="fontBakeryStatusOption"
                         v-model="fontBakeryDataStore.filters.status"
                     />
-                    {{ fontBakeryStatusOption }}: {{ fontBakeryResults[fontBakeryStatusOption] }}
+                    {{ formatFontBakeryStatus(fontBakeryStatusOption) }}
+                    <span class="ikon">({{ fontBakeryResults[fontBakeryStatusOption] }})</span>
                 </label>
             </li>
         </template>
     </ul>
-    {{ fontBakeryFilters.status }}
 </template>
 
 <style scoped></style>
