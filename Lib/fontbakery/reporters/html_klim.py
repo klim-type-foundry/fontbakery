@@ -18,10 +18,9 @@ class KlimHtmlReporter(HTMLReporter):
     def get_html(self) -> str:
         html_path = os.path.join(
             os.path.dirname(os.path.dirname(__file__)),
-            "data",
-            "vue_frontend",
+            "frontend_spa_report",
             "dist",
-            "report.html",
+            "index.html",
         )
         with open(html_path) as f:
             return f"""<script>const checkData = {json.dumps(self.getdoc(), sort_keys=True)};</script>\n{f.read()}"""

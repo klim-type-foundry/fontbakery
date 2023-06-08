@@ -16,16 +16,6 @@ const config: UserConfigExport = defineConfig({
     ssr: {
         noExternal: true,
     },
-    build: {
-        rollupOptions: {
-            input: {
-                app: './report-spa.html',
-            },
-        },
-    },
-    server: {
-        open: '/report-spa.html',
-    },
 });
 
 export default config;
