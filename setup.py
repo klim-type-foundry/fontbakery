@@ -51,7 +51,7 @@ setup(
         "fontbakery": [
             "data/*.cache",
             "data/googlefonts/*_exceptions.txt",
-            "frontend_spa_report/",
+            "frontend_spa_report/README.md",
             "frontend_spa_report/dist/*.html",
         ]
     },
