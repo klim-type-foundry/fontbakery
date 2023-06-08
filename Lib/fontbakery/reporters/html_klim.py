@@ -22,30 +22,6 @@ class KlimHtmlReporter(HTMLReporter):
             "dist",
             "index.html",
         )
+        json_data_string = json.dumps(self.getdoc(), sort_keys=True)
         with open(html_path) as f:
-            return f"""<script>const checkData = {json.dumps(self.getdoc(), sort_keys=True)};</script>\n{f.read()}"""
-        #
-        # return f"""
-        # <script type="importmap">
-        #   {{
-        #     "imports": {{
-        #       "vue": "https://unpkg.com/vue@3/dist/vue.esm-browser{'.prod' if PRODUCTION_JS else ''}.js"
-        #     }}
-        #   }}
-        # </script>
-        #
-        # <div id="app">{{{{ message }}}}<br /><br /><pre>{{{{ checkData }}}}</pre></div>
-        #
-        # <script type="module">
-        #   import {{ createApp }} from 'vue';
-        #
-        #   createApp({{
-        #     data() {{
-        #       return {{
-        #         message: `Hello Font Bakery!`,
-        #         checkData: {json.dumps(self.getdoc(), sort_keys=True)}
-        #       }}
-        #     }}
-        #   }}).mount('#app');
-        # </script>
-        # """
+            return f"""<script>window.fontBakeryData = {json_data_string};</script>\n{f.read()}"""
