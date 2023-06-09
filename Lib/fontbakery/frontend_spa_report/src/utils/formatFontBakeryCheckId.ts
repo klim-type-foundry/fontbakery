@@ -1,7 +1,8 @@
-export default function formatFontBakeryCheckId(key: FontBakeryKey) {
-    if (!key[1]) {
+export default function formatFontBakeryCheckId(key: FontBakeryKey | string) {
+    const rawCheckId = typeof key === 'string' ? key : key[1];
+    if (!rawCheckId) {
         return '';
     }
-    const formattedCheckId = key[1].replace('<FontBakeryCheck:', '');
+    const formattedCheckId = rawCheckId.replace('<FontBakeryCheck:', '');
     return formattedCheckId.substring(0, formattedCheckId.length - 1);
 }

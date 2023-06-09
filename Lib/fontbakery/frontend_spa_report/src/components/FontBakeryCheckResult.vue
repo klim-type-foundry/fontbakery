@@ -1,7 +1,6 @@
 <script setup lang="ts">
-import formatFontBakeryCheckId from '@/utils/formatFontBakeryCheckId';
-import formatFontBakeryStatus from '@/utils/formatFontBakeryStatus';
 import FontBakeryCheckLog from '@/components/FontBakeryCheckLog.vue';
+import formatFontBakeryStatus from '../utils/formatFontBakeryStatus';
 
 defineProps<{
     check: FontBakeryCheck;
@@ -9,26 +8,16 @@ defineProps<{
 </script>
 
 <template>
-    <div class="check-result">
-        <h3>{{ check.description }} — {{ formatFontBakeryStatus(check.result) }}</h3>
-        <p>
-            <code>{{ formatFontBakeryCheckId(check.key) }}</code>
-        </p>
-        <p>
-            <code>{{ check.filename }}</code>
-        </p>
-        <p v-if="check.rationale">{{ check.rationale }}</p>
-        <FontBakeryCheckLog
-            v-for="logEntry in check.logs"
-            :log-entry="logEntry"
-            :key="logEntry.message"
-        />
-        <hr />
-    </div>
+    <li>
+        <code
+            >{{ check.filename ? check.filename : 'Family check' }} —
+            {{ formatFontBakeryStatus(check.result) }}</code
+        >
+    </li>
+    <!--    <p v-if="check.rationale">{{ check.rationale }}</p>-->
+    <!--    <FontBakeryCheckLog-->
+    <!--        v-for="logEntry in check.logs"-->
+    <!--        :log-entry="logEntry"-->
+    <!--        :key="logEntry.message"-->
+    <!--    />-->
 </template>
-
-<style scoped>
-hr {
-    margin: 1rem 0;
-}
-</style>

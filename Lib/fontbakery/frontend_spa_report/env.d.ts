@@ -19,7 +19,7 @@ interface FontBakeryLog {
 
 interface FontBakeryCheck {
     description: string;
-    filename: string;
+    filename?: string;
     key: FontBakeryKey;
     logs: FontBakeryLog[];
     result: FontBakeryStatus;

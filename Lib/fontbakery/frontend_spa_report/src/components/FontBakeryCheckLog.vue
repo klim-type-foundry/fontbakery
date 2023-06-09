@@ -7,9 +7,7 @@ defineProps<{
 </script>
 
 <template>
-    <div class="check-log">
-        <h4>{{ logEntry.message }} — {{ formatFontBakeryStatus(logEntry.status) }}</h4>
-    </div>
+    <h4>{{ logEntry.message }} — {{ formatFontBakeryStatus(logEntry.status) }}</h4>
 </template>
 
 <style scoped></style>
