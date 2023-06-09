@@ -13,11 +13,16 @@ defineProps<{
             >{{ check.filename ? check.filename : 'Family check' }} —
             {{ formatFontBakeryStatus(check.result) }}</code
         >
+        <!--
+          TODO: Use log levels from Font Bakery??
+           Would have to output them to the HTML as a JS var.
+        -->
+        <ul v-if="['INFO', 'WARN', 'ERROR', 'FAIL'].includes(check.result)">
+            <FontBakeryCheckLog
+                v-for="logEntry in check.logs"
+                :log-entry="logEntry"
+                :key="logEntry.message"
+            />
+        </ul>
     </li>
-    <!--    <p v-if="check.rationale">{{ check.rationale }}</p>-->
-    <!--    <FontBakeryCheckLog-->
-    <!--        v-for="logEntry in check.logs"-->
-    <!--        :log-entry="logEntry"-->
-    <!--        :key="logEntry.message"-->
-    <!--    />-->
 </template>

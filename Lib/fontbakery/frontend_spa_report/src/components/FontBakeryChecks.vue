@@ -11,6 +11,7 @@ const props = defineProps<{
 interface ChecksById {
     id: string;
     description: string;
+    rationale?: string;
     checks: FontBakeryCheck[];
 }
 
@@ -27,6 +28,7 @@ const checksById = computed(() => {
             checksGroup = {
                 id: checkId,
                 description: check.description,
+                rationale: check.rationale,
                 checks: [],
             };
         }
@@ -49,6 +51,7 @@ const checksById = computed(() => {
         <p>
             Check ID: <code>{{ formatFontBakeryCheckId(checkById.id) }}</code>
         </p>
+        <p v-if="checkById.rationale">Rationale: {{ checkById.rationale }}</p>
         <ul>
             <FontBakeryCheckResult
                 v-for="fontBakeryCheck in checkById.checks"
