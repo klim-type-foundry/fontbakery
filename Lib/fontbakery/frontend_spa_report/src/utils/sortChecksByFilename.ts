@@ -4,11 +4,11 @@ export default function sortChecksByFilename(a: FontBakeryCheck, b: FontBakeryCh
     const aIsRoman = aFilename.includes('/roman/');
     const bIsRoman = bFilename.includes('/roman/');
 
-    if (aIsRoman === bIsRoman) {
-        // Sort by filename within roman/italic
-        return aFilename > bFilename ? 1 : -1;
+    if (aIsRoman !== bIsRoman) {
+        // Sort romans before italics
+        return aIsRoman && !bIsRoman ? -1 : 1;
     }
 
-    // Sort romans before italics
-    return aIsRoman && !bIsRoman ? -1 : 1;
+    // Sort by filename within roman/italic
+    return aFilename > bFilename ? 1 : -1;
 }
