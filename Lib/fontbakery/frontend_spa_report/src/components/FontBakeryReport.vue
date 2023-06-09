@@ -5,6 +5,7 @@ import { useFontBakeryData } from '@/stores/useFontBakeryData';
 import formatFontBakeryKey from '@/utils/formatFontBakeryKey';
 import FontBakeryResultStatuses from '@/components/FontBakeryResultStatuses.vue';
 import FontBakeryCheckResult from '@/components/FontBakeryCheckResult.vue';
+import formatHtmlIdFromFontBakeryKey from '@/utils/formatHtmlIdFromFontBakeryKey';
 
 const fontBakeryDataStore = useFontBakeryData();
 const { sections: fontBakerySections, filters: fontBakeryFilters } =
@@ -20,11 +21,15 @@ const filteredSections = computed(() => {
 <template>
     <h1>Font Bakery report</h1>
     <template v-for="fontBakerySection in filteredSections" :key="fontBakerySection.key">
-        <h2>{{ formatFontBakeryKey(fontBakerySection.key) }}</h2>
+        <h2 :id="formatHtmlIdFromFontBakeryKey(fontBakerySection.key)">
+            {{ formatFontBakeryKey(fontBakerySection.key) }}
+        </h2>
         <FontBakeryResultStatuses :statuses="fontBakerySection.result" />
         <div class="check-contents">
             <FontBakeryCheckResult
-                v-for="fontBakeryCheck in fontBakerySection.checks"
+                v-for="fontBakeryCheck in fontBakerySection.checks.filter((check) =>
+                    fontBakeryFilters.status.includes(check.result),
+                )"
                 :check="fontBakeryCheck"
                 :key="fontBakeryCheck.key"
             />
