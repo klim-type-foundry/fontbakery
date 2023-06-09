@@ -4,7 +4,6 @@ import { storeToRefs } from 'pinia';
 import { useFontBakeryData } from '@/stores/useFontBakeryData';
 import formatFontBakeryKey from '@/utils/formatFontBakeryKey';
 import FontBakeryResultStatuses from '@/components/FontBakeryResultStatuses.vue';
-import FontBakeryCheckResult from '@/components/FontBakeryCheckResult.vue';
 import formatHtmlIdFromFontBakeryKey from '@/utils/formatHtmlIdFromFontBakeryKey';
 import FontBakeryChecks from '@/components/FontBakeryChecks.vue';
 

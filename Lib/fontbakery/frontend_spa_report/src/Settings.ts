@@ -22,3 +22,19 @@ export enum IkonType {
     RESET = '⭯',
     BUILD_TIME = '⭍',
 }
+
+/**
+ * TODO: Use log levels from Font Bakery??
+ *  Would have to output them to the HTML as a JS var.
+ */
+export const FontBakeryLogLevels: FontBakeryStatus[] = ['INFO', 'WARN', 'ERROR', 'FAIL'];
+
+export const CheckStatusEmoji: Record<FontBakeryStatus, string> = {
+    ERROR: '💥',
+    FAIL: '🔥',
+    WARN: '⚠️',
+    INFO: 'ℹ️',
+    SKIP: '⏩',
+    PASS: '✅',
+    DEBUG: '🔎',
+};

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import formatFontBakeryStatus from '@/utils/formatFontBakeryStatus';
+import getFontBakeryStatusEmoji from '@/utils/getFontBakeryStatusEmoji';
 
 defineProps<{
     logEntry: FontBakeryLog;
@@ -7,7 +7,9 @@ defineProps<{
 </script>
 
 <template>
-    <li>{{ logEntry.message }} — {{ formatFontBakeryStatus(logEntry.status) }}</li>
+    <li>
+        <span v-html="getFontBakeryStatusEmoji(logEntry.status)" />{{ ` ` }}{{ logEntry.message }}
+    </li>
 </template>
 
 <style scoped></style>

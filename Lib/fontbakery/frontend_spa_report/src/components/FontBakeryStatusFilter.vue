@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { storeToRefs } from 'pinia';
 import { useFontBakeryData } from '@/stores/useFontBakeryData';
-import formatFontBakeryStatus from '@/utils/formatFontBakeryStatus';
+import formatFontBakeryStatus from '@/utils/formatFontBakeryStatus.js';
 import getFontBakeryStatuses from '@/utils/getFontBakeryStatuses';
+import getFontBakeryStatusEmoji from '@/utils/getFontBakeryStatusEmoji';
 
 const fontBakeryDataStore = useFontBakeryData();
 const { result: fontBakeryResults } = storeToRefs(fontBakeryDataStore);
@@ -22,7 +23,11 @@ const { result: fontBakeryResults } = storeToRefs(fontBakeryDataStore);
                         :value="fontBakeryStatusOption"
                         v-model="fontBakeryDataStore.filters.status"
                     />
+                    {{ ` ` }}
+                    <span v-html="getFontBakeryStatusEmoji(fontBakeryStatusOption)" />
+                    {{ ` ` }}
                     {{ formatFontBakeryStatus(fontBakeryStatusOption) }}
+                    {{ ` ` }}
                     <span class="ikon">({{ fontBakeryResults[fontBakeryStatusOption] }})</span>
                 </label>
             </li>

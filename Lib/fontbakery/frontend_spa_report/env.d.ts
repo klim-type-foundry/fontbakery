@@ -9,6 +9,8 @@ interface FontBakeryResultStatuses {
     PASS?: number;
     WARN?: number;
     INFO?: number;
+    SKIP?: number;
+    DEBUG?: number;
 }
 
 interface FontBakeryLog {

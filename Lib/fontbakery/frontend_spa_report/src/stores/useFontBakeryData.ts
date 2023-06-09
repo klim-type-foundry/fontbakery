@@ -2,6 +2,7 @@ import { defineStore } from 'pinia';
 import devFontBakeryData from '@/data/dev-american-grotesk';
 import getFontBakerySectionKeys from '@/utils/getFontBakerySectionKeys';
 import getFontBakeryStatuses from '@/utils/getFontBakeryStatuses';
+import { FontBakeryLogLevels } from '@/Settings';
 
 export const useFontBakeryData = defineStore('fontBakeryData', {
     state: (): FontBakeryData => ({
@@ -24,7 +25,7 @@ export const useFontBakeryData = defineStore('fontBakeryData', {
             this.filters.sectionKey = sectionKeys;
         },
         resetStatusFilter() {
-            this.filters.status = getFontBakeryStatuses(this.result);
+            this.filters.status = FontBakeryLogLevels;
         },
         setStatusFilter(statuses: FontBakeryStatus[]) {
             this.filters.status = statuses;
