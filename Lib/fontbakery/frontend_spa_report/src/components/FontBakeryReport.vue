@@ -39,6 +39,6 @@ const filteredSections = computed(() => {
 
 <style scoped>
 .check-contents {
-    padding-left: 2rem;
+    //padding-left: 2rem;
 }
 </style>

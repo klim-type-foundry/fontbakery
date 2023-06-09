@@ -1,5 +1,5 @@
 /// <reference types="vite/client" />
-type FontBakeryStatus = 'ERROR' | 'FAIL' | 'PASS' | 'WARN' | 'INFO';
+type FontBakeryStatus = 'ERROR' | 'FAIL' | 'PASS' | 'WARN' | 'INFO' | 'SKIP' | 'DEBUG';
 
 type FontBakeryKey = [string, string | null, [[string, number]] | null];
 

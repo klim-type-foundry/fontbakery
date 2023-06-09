@@ -41,6 +41,8 @@
   --color-link: var(--theme-green);
   --color-link-hover: var(--theme-dark-green);
 
+  --color-hr: var(--theme-divider-light-1);
+
   --color-nav-background: var(--theme-white-mute);
 
   --section-gap: 160px;
@@ -61,6 +63,8 @@
 
     --color-link: var(--theme-dark-green);
     --color-link-hover: var(--theme-green);
+
+    --color-hr: var(--theme-divider-dark-1);
 
     --color-nav-background: var(--theme-black-mute);
   }
@@ -136,4 +140,10 @@ a {
 
 pre, code {
   font-family: SoehneMono, monospace;
+}
+
+hr {
+  border: 0;
+  height: 0;
+  border-top: 1px solid var(--color-hr);
 }

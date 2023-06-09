@@ -11,8 +11,12 @@ defineProps<{
 <template>
     <div class="check-result">
         <h3>{{ check.description }} — {{ formatFontBakeryStatus(check.result) }}</h3>
-        <code>{{ formatFontBakeryCheckId(check.key) }}</code>
-        <p>{{ check.filename }}</p>
+        <p>
+            <code>{{ formatFontBakeryCheckId(check.key) }}</code>
+        </p>
+        <p>
+            <code>{{ check.filename }}</code>
+        </p>
         <p v-if="check.rationale">{{ check.rationale }}</p>
         <FontBakeryCheckLog
             v-for="logEntry in check.logs"
