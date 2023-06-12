@@ -55,7 +55,7 @@ const checksById = computed(() => {
         <FontBakeryCheckResult
             v-for="fontBakeryCheck in checkById.checks"
             :check="fontBakeryCheck"
-            :key="fontBakeryCheck.key"
+            :key="fontBakeryCheck.key[0]"
         />
         <hr />
     </template>
