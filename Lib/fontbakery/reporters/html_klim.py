@@ -17,7 +17,7 @@ class KlimHtmlReporter(HTMLReporter):
 
     def getdoc(self):
         doc = super().getdoc()
-        doc["loglevels"] = self.loglevels
+        doc["loglevels"] = [loglevel.name for loglevel in self.loglevels]
         return doc
 
     def get_html(self) -> str:

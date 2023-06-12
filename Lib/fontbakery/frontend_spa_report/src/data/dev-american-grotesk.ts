@@ -1,4 +1,5 @@
-const data: Pick<FontBakeryData, 'result' | 'sections'> = {
+const data: Pick<FontBakeryData, 'result' | 'sections' | 'loglevels'> = {
+    loglevels: null,
     result: { ERROR: 10, FAIL: 2, PASS: 56, WARN: 12 },
     sections: [
         {
@@ -29,11 +30,7 @@ const data: Pick<FontBakeryData, 'result' | 'sections'> = {
                         [['ufo', 0]],
                     ],
                     logs: [
-                        {
-                            message: 'Required fields present.',
-                            status: 'PASS',
-                            traceback: null,
-                        },
+                        { message: 'Required fields present.', status: 'PASS', traceback: null },
                     ],
                     rationale:
                         '\n        ufo2ft requires these info fields to compile a font binary:\n        unitsPerEm, ascender, descender, xHeight, capHeight and familyName.\n    ',
@@ -69,11 +66,7 @@ const data: Pick<FontBakeryData, 'result' | 'sections'> = {
                         [['ufo', 0]],
                     ],
                     logs: [
-                        {
-                            message: 'Unnecessary fields omitted.',
-                            status: 'PASS',
-                            traceback: null,
-                        },
+                        { message: 'Unnecessary fields omitted.', status: 'PASS', traceback: null },
                     ],
                     rationale:
                         '\n        ufo2ft will generate these.\n\n        openTypeOS2UnicodeRanges and openTypeOS2CodePageRanges are exempted\n        because it is useful to toggle a range when not _all_ the glyphs in that\n        region are present.\n\n        year is deprecated since UFO v2.\n    ',
@@ -105,11 +98,7 @@ const data: Pick<FontBakeryData, 'result' | 'sections'> = {
                         [['ufo', 1]],
                     ],
                     logs: [
-                        {
-                            message: 'Required fields present.',
-                            status: 'PASS',
-                            traceback: null,
-                        },
+                        { message: 'Required fields present.', status: 'PASS', traceback: null },
                     ],
                     rationale:
                         '\n        ufo2ft requires these info fields to compile a font binary:\n        unitsPerEm, ascender, descender, xHeight, capHeight and familyName.\n    ',
@@ -145,11 +134,7 @@ const data: Pick<FontBakeryData, 'result' | 'sections'> = {
                         [['ufo', 1]],
                     ],
                     logs: [
-                        {
-                            message: 'Unnecessary fields omitted.',
-                            status: 'PASS',
-                            traceback: null,
-                        },
+                        { message: 'Unnecessary fields omitted.', status: 'PASS', traceback: null },
                     ],
                     rationale:
                         '\n        ufo2ft will generate these.\n\n        openTypeOS2UnicodeRanges and openTypeOS2CodePageRanges are exempted\n        because it is useful to toggle a range when not _all_ the glyphs in that\n        region are present.\n\n        year is deprecated since UFO v2.\n    ',
@@ -181,11 +166,7 @@ const data: Pick<FontBakeryData, 'result' | 'sections'> = {
                         [['ufo', 2]],
                     ],
                     logs: [
-                        {
-                            message: 'Required fields present.',
-                            status: 'PASS',
-                            traceback: null,
-                        },
+                        { message: 'Required fields present.', status: 'PASS', traceback: null },
                     ],
                     rationale:
                         '\n        ufo2ft requires these info fields to compile a font binary:\n        unitsPerEm, ascender, descender, xHeight, capHeight and familyName.\n    ',
@@ -221,11 +202,7 @@ const data: Pick<FontBakeryData, 'result' | 'sections'> = {
                         [['ufo', 2]],
                     ],
                     logs: [
-                        {
-                            message: 'Unnecessary fields omitted.',
-                            status: 'PASS',
-                            traceback: null,
-                        },
+                        { message: 'Unnecessary fields omitted.', status: 'PASS', traceback: null },
                     ],
                     rationale:
                         '\n        ufo2ft will generate these.\n\n        openTypeOS2UnicodeRanges and openTypeOS2CodePageRanges are exempted\n        because it is useful to toggle a range when not _all_ the glyphs in that\n        region are present.\n\n        year is deprecated since UFO v2.\n    ',
@@ -257,11 +234,7 @@ const data: Pick<FontBakeryData, 'result' | 'sections'> = {
                         [['ufo', 3]],
                     ],
                     logs: [
-                        {
-                            message: 'Required fields present.',
-                            status: 'PASS',
-                            traceback: null,
-                        },
+                        { message: 'Required fields present.', status: 'PASS', traceback: null },
                     ],
                     rationale:
                         '\n        ufo2ft requires these info fields to compile a font binary:\n        unitsPerEm, ascender, descender, xHeight, capHeight and familyName.\n    ',
@@ -297,11 +270,7 @@ const data: Pick<FontBakeryData, 'result' | 'sections'> = {
                         [['ufo', 3]],
                     ],
                     logs: [
-                        {
-                            message: 'Unnecessary fields omitted.',
-                            status: 'PASS',
-                            traceback: null,
-                        },
+                        { message: 'Unnecessary fields omitted.', status: 'PASS', traceback: null },
                     ],
                     rationale:
                         '\n        ufo2ft will generate these.\n\n        openTypeOS2UnicodeRanges and openTypeOS2CodePageRanges are exempted\n        because it is useful to toggle a range when not _all_ the glyphs in that\n        region are present.\n\n        year is deprecated since UFO v2.\n    ',
@@ -333,11 +302,7 @@ const data: Pick<FontBakeryData, 'result' | 'sections'> = {
                         [['ufo', 4]],
                     ],
                     logs: [
-                        {
-                            message: 'Required fields present.',
-                            status: 'PASS',
-                            traceback: null,
-                        },
+                        { message: 'Required fields present.', status: 'PASS', traceback: null },
                     ],
                     rationale:
                         '\n        ufo2ft requires these info fields to compile a font binary:\n        unitsPerEm, ascender, descender, xHeight, capHeight and familyName.\n    ',
@@ -373,11 +338,7 @@ const data: Pick<FontBakeryData, 'result' | 'sections'> = {
                         [['ufo', 4]],
                     ],
                     logs: [
-                        {
-                            message: 'Unnecessary fields omitted.',
-                            status: 'PASS',
-                            traceback: null,
-                        },
+                        { message: 'Unnecessary fields omitted.', status: 'PASS', traceback: null },
                     ],
                     rationale:
                         '\n        ufo2ft will generate these.\n\n        openTypeOS2UnicodeRanges and openTypeOS2CodePageRanges are exempted\n        because it is useful to toggle a range when not _all_ the glyphs in that\n        region are present.\n\n        year is deprecated since UFO v2.\n    ',
@@ -409,11 +370,7 @@ const data: Pick<FontBakeryData, 'result' | 'sections'> = {
                         [['ufo', 5]],
                     ],
                     logs: [
-                        {
-                            message: 'Required fields present.',
-                            status: 'PASS',
-                            traceback: null,
-                        },
+                        { message: 'Required fields present.', status: 'PASS', traceback: null },
                     ],
                     rationale:
                         '\n        ufo2ft requires these info fields to compile a font binary:\n        unitsPerEm, ascender, descender, xHeight, capHeight and familyName.\n    ',
@@ -449,11 +406,7 @@ const data: Pick<FontBakeryData, 'result' | 'sections'> = {
                         [['ufo', 5]],
                     ],
                     logs: [
-                        {
-                            message: 'Unnecessary fields omitted.',
-                            status: 'PASS',
-                            traceback: null,
-                        },
+                        { message: 'Unnecessary fields omitted.', status: 'PASS', traceback: null },
                     ],
                     rationale:
                         '\n        ufo2ft will generate these.\n\n        openTypeOS2UnicodeRanges and openTypeOS2CodePageRanges are exempted\n        because it is useful to toggle a range when not _all_ the glyphs in that\n        region are present.\n\n        year is deprecated since UFO v2.\n    ',
@@ -485,11 +438,7 @@ const data: Pick<FontBakeryData, 'result' | 'sections'> = {
                         [['ufo', 6]],
                     ],
                     logs: [
-                        {
-                            message: 'Required fields present.',
-                            status: 'PASS',
-                            traceback: null,
-                        },
+                        { message: 'Required fields present.', status: 'PASS', traceback: null },
                     ],
                     rationale:
                         '\n        ufo2ft requires these info fields to compile a font binary:\n        unitsPerEm, ascender, descender, xHeight, capHeight and familyName.\n    ',
@@ -525,11 +474,7 @@ const data: Pick<FontBakeryData, 'result' | 'sections'> = {
                         [['ufo', 6]],
                     ],
                     logs: [
-                        {
-                            message: 'Unnecessary fields omitted.',
-                            status: 'PASS',
-                            traceback: null,
-                        },
+                        { message: 'Unnecessary fields omitted.', status: 'PASS', traceback: null },
                     ],
                     rationale:
                         '\n        ufo2ft will generate these.\n\n        openTypeOS2UnicodeRanges and openTypeOS2CodePageRanges are exempted\n        because it is useful to toggle a range when not _all_ the glyphs in that\n        region are present.\n\n        year is deprecated since UFO v2.\n    ',
@@ -561,11 +506,7 @@ const data: Pick<FontBakeryData, 'result' | 'sections'> = {
                         [['ufo', 7]],
                     ],
                     logs: [
-                        {
-                            message: 'Required fields present.',
-                            status: 'PASS',
-                            traceback: null,
-                        },
+                        { message: 'Required fields present.', status: 'PASS', traceback: null },
                     ],
                     rationale:
                         '\n        ufo2ft requires these info fields to compile a font binary:\n        unitsPerEm, ascender, descender, xHeight, capHeight and familyName.\n    ',
@@ -601,11 +542,7 @@ const data: Pick<FontBakeryData, 'result' | 'sections'> = {
                         [['ufo', 7]],
                     ],
                     logs: [
-                        {
-                            message: 'Unnecessary fields omitted.',
-                            status: 'PASS',
-                            traceback: null,
-                        },
+                        { message: 'Unnecessary fields omitted.', status: 'PASS', traceback: null },
                     ],
                     rationale:
                         '\n        ufo2ft will generate these.\n\n        openTypeOS2UnicodeRanges and openTypeOS2CodePageRanges are exempted\n        because it is useful to toggle a range when not _all_ the glyphs in that\n        region are present.\n\n        year is deprecated since UFO v2.\n    ',
@@ -637,11 +574,7 @@ const data: Pick<FontBakeryData, 'result' | 'sections'> = {
                         [['ufo', 8]],
                     ],
                     logs: [
-                        {
-                            message: 'Required fields present.',
-                            status: 'PASS',
-                            traceback: null,
-                        },
+                        { message: 'Required fields present.', status: 'PASS', traceback: null },
                     ],
                     rationale:
                         '\n        ufo2ft requires these info fields to compile a font binary:\n        unitsPerEm, ascender, descender, xHeight, capHeight and familyName.\n    ',
@@ -677,11 +610,7 @@ const data: Pick<FontBakeryData, 'result' | 'sections'> = {
                         [['ufo', 8]],
                     ],
                     logs: [
-                        {
-                            message: 'Unnecessary fields omitted.',
-                            status: 'PASS',
-                            traceback: null,
-                        },
+                        { message: 'Unnecessary fields omitted.', status: 'PASS', traceback: null },
                     ],
                     rationale:
                         '\n        ufo2ft will generate these.\n\n        openTypeOS2UnicodeRanges and openTypeOS2CodePageRanges are exempted\n        because it is useful to toggle a range when not _all_ the glyphs in that\n        region are present.\n\n        year is deprecated since UFO v2.\n    ',
@@ -713,11 +642,7 @@ const data: Pick<FontBakeryData, 'result' | 'sections'> = {
                         [['ufo', 9]],
                     ],
                     logs: [
-                        {
-                            message: 'Required fields present.',
-                            status: 'PASS',
-                            traceback: null,
-                        },
+                        { message: 'Required fields present.', status: 'PASS', traceback: null },
                     ],
                     rationale:
                         '\n        ufo2ft requires these info fields to compile a font binary:\n        unitsPerEm, ascender, descender, xHeight, capHeight and familyName.\n    ',
@@ -753,11 +678,7 @@ const data: Pick<FontBakeryData, 'result' | 'sections'> = {
                         [['ufo', 9]],
                     ],
                     logs: [
-                        {
-                            message: 'Unnecessary fields omitted.',
-                            status: 'PASS',
-                            traceback: null,
-                        },
+                        { message: 'Unnecessary fields omitted.', status: 'PASS', traceback: null },
                     ],
                     rationale:
                         '\n        ufo2ft will generate these.\n\n        openTypeOS2UnicodeRanges and openTypeOS2CodePageRanges are exempted\n        because it is useful to toggle a range when not _all_ the glyphs in that\n        region are present.\n\n        year is deprecated since UFO v2.\n    ',
@@ -789,11 +710,7 @@ const data: Pick<FontBakeryData, 'result' | 'sections'> = {
                         [['ufo', 10]],
                     ],
                     logs: [
-                        {
-                            message: 'Required fields present.',
-                            status: 'PASS',
-                            traceback: null,
-                        },
+                        { message: 'Required fields present.', status: 'PASS', traceback: null },
                     ],
                     rationale:
                         '\n        ufo2ft requires these info fields to compile a font binary:\n        unitsPerEm, ascender, descender, xHeight, capHeight and familyName.\n    ',
@@ -829,11 +746,7 @@ const data: Pick<FontBakeryData, 'result' | 'sections'> = {
                         [['ufo', 10]],
                     ],
                     logs: [
-                        {
-                            message: 'Unnecessary fields omitted.',
-                            status: 'PASS',
-                            traceback: null,
-                        },
+                        { message: 'Unnecessary fields omitted.', status: 'PASS', traceback: null },
                     ],
                     rationale:
                         '\n        ufo2ft will generate these.\n\n        openTypeOS2UnicodeRanges and openTypeOS2CodePageRanges are exempted\n        because it is useful to toggle a range when not _all_ the glyphs in that\n        region are present.\n\n        year is deprecated since UFO v2.\n    ',
@@ -865,11 +778,7 @@ const data: Pick<FontBakeryData, 'result' | 'sections'> = {
                         [['ufo', 11]],
                     ],
                     logs: [
-                        {
-                            message: 'Required fields present.',
-                            status: 'PASS',
-                            traceback: null,
-                        },
+                        { message: 'Required fields present.', status: 'PASS', traceback: null },
                     ],
                     rationale:
                         '\n        ufo2ft requires these info fields to compile a font binary:\n        unitsPerEm, ascender, descender, xHeight, capHeight and familyName.\n    ',
@@ -905,11 +814,7 @@ const data: Pick<FontBakeryData, 'result' | 'sections'> = {
                         [['ufo', 11]],
                     ],
                     logs: [
-                        {
-                            message: 'Unnecessary fields omitted.',
-                            status: 'PASS',
-                            traceback: null,
-                        },
+                        { message: 'Unnecessary fields omitted.', status: 'PASS', traceback: null },
                     ],
                     rationale:
                         '\n        ufo2ft will generate these.\n\n        openTypeOS2UnicodeRanges and openTypeOS2CodePageRanges are exempted\n        because it is useful to toggle a range when not _all_ the glyphs in that\n        region are present.\n\n        year is deprecated since UFO v2.\n    ',
@@ -962,11 +867,7 @@ const data: Pick<FontBakeryData, 'result' | 'sections'> = {
                         [['designspace', 0]],
                     ],
                     logs: [
-                        {
-                            message: 'Glyphsets were consistent.',
-                            status: 'PASS',
-                            traceback: null,
-                        },
+                        { message: 'Glyphsets were consistent.', status: 'PASS', traceback: null },
                     ],
                     rationale:
                         "\n        This check ensures that non-default masters don't have glyphs\n        not present in the default one.\n    ",
@@ -1026,7 +927,7 @@ const data: Pick<FontBakeryData, 'result' | 'sections'> = {
                                 "The check <FontBakeryCheck:com.google.fonts/check/designspace_has_default_master> had an error: FailedConditionError: The condition <FontBakeryCondition:designSpace> had an error: UFOLibError: No such file or directory: '/Users/peter/Work/Fonts/AmericanGrotesk/sources/roman/AmericanGrotesk-RegularVF.ufo'",
                             status: 'ERROR',
                             traceback:
-                                '  File "/Users/peter/.pyenv/versions/3.10.4/envs/venv-AmericanGrotesk/lib/python3.10/site-packages/fontbakery/checkrunner.py", line 405, in _get_check_dependencies\n    args = self._get_args(check, iterargs)\n  File "/Users/peter/.pyenv/versions/3.10.4/envs/venv-AmericanGrotesk/lib/python3.10/site-packages/fontbakery/checkrunner.py", line 360, in _get_args\n    args[name] = self._get(name, iterargs, path)\n  File "/Users/peter/.pyenv/versions/3.10.4/envs/venv-AmericanGrotesk/lib/python3.10/site-packages/fontbakery/checkrunner.py", line 331, in _get\n    raise error\n  File "/Users/peter/.pyenv/versions/3.10.4/envs/venv-AmericanGrotesk/lib/python3.10/site-packages/fontbakery/checkrunner.py", line 221, in _evaluate_condition\n    args = self._get_args(condition, iterargs, path)\n  File "/Users/peter/.pyenv/versions/3.10.4/envs/venv-AmericanGrotesk/lib/python3.10/site-packages/fontbakery/checkrunner.py", line 360, in _get_args\n    args[name] = self._get(name, iterargs, path)\n  File "/Users/peter/.pyenv/versions/3.10.4/envs/venv-AmericanGrotesk/lib/python3.10/site-packages/fontbakery/checkrunner.py", line 331, in _get\n    raise error\n',
+                                '  File "/Users/peter/.pyenv/versions/3.10.4/envs/venv-AmericanGrotesk/lib/python3.10/site-packages/fontbakery/checkrunner.py", line 405, in _get_check_dependencies\n    args = self._get_args(check, iterargs)\n  File "/Users/peter/.pyenv/versions/3.10.4/envs/venv-AmericanGrotesk/lib/python3.10/site-packages/fontbakery/checkrunner.py", line 360, in _get_args\n    args[name] = self._get(name, iterargs, path)\n  File "/Users/peter/.pyenv/versions/3.10.4/envs/venv-AmericanGrotesk/lib/python3.10/site-packages/fontbakery/checkrunner.py", line 331, in _get\n    raise error\n',
                         },
                     ],
                     rationale:
@@ -1152,7 +1053,7 @@ const data: Pick<FontBakeryData, 'result' | 'sections'> = {
                                 "The condition <FontBakeryCondition:designspace_sources> had an error: FailedConditionError: The condition <FontBakeryCondition:designSpace> had an error: UFOLibError: No such file or directory: '/Users/peter/Work/Fonts/AmericanGrotesk/sources/italic/AmericanGrotesk-ItalicVF.ufo'",
                             status: 'ERROR',
                             traceback:
-                                '  File "/Users/peter/.pyenv/versions/3.10.4/envs/venv-AmericanGrotesk/lib/python3.10/site-packages/fontbakery/checkrunner.py", line 221, in _evaluate_condition\n    args = self._get_args(condition, iterargs, path)\n  File "/Users/peter/.pyenv/versions/3.10.4/envs/venv-AmericanGrotesk/lib/python3.10/site-packages/fontbakery/checkrunner.py", line 360, in _get_args\n    args[name] = self._get(name, iterargs, path)\n  File "/Users/peter/.pyenv/versions/3.10.4/envs/venv-AmericanGrotesk/lib/python3.10/site-packages/fontbakery/checkrunner.py", line 331, in _get\n    raise error\n',
+                                '  File "/Users/peter/.pyenv/versions/3.10.4/envs/venv-AmericanGrotesk/lib/python3.10/site-packages/fontbakery/checkrunner.py", line 221, in _evaluate_condition\n    args = self._get_args(condition, iterargs, path)\n  File "/Users/peter/.pyenv/versions/3.10.4/envs/venv-AmericanGrotesk/lib/python3.10/site-packages/fontbakery/checkrunner.py", line 360, in _get_args\n    args[name] = self._get(name, iterargs, path)\n  File "/Users/peter/.pyenv/versions/3.10.4/envs/venv-AmericanGrotesk/lib/python3.10/site-packages/fontbakery/checkrunner.py", line 331, in _get\n    raise error\n  File "/Users/peter/.pyenv/versions/3.10.4/envs/venv-AmericanGrotesk/lib/python3.10/site-packages/fontbakery/checkrunner.py", line 405, in _get_check_dependencies\n    args = self._get_args(check, iterargs)\n  File "/Users/peter/.pyenv/versions/3.10.4/envs/venv-AmericanGrotesk/lib/python3.10/site-packages/fontbakery/checkrunner.py", line 360, in _get_args\n    args[name] = self._get(name, iterargs, path)\n  File "/Users/peter/.pyenv/versions/3.10.4/envs/venv-AmericanGrotesk/lib/python3.10/site-packages/fontbakery/checkrunner.py", line 331, in _get\n    raise error\n',
                         },
                     ],
                     rationale:
@@ -1200,11 +1101,7 @@ const data: Pick<FontBakeryData, 'result' | 'sections'> = {
                         [['designspace', 3]],
                     ],
                     logs: [
-                        {
-                            message: 'Glyphsets were consistent.',
-                            status: 'PASS',
-                            traceback: null,
-                        },
+                        { message: 'Glyphsets were consistent.', status: 'PASS', traceback: null },
                     ],
                     rationale:
                         "\n        This check ensures that non-default masters don't have glyphs\n        not present in the default one.\n    ",
@@ -1327,13 +1224,7 @@ const data: Pick<FontBakeryData, 'result' | 'sections'> = {
                         '<FontBakeryCheck:com.klim/check/marks_have_anchors>',
                         [['ufo', 0]],
                     ],
-                    logs: [
-                        {
-                            message: 'All marks have anchors',
-                            status: 'PASS',
-                            traceback: null,
-                        },
-                    ],
+                    logs: [{ message: 'All marks have anchors', status: 'PASS', traceback: null }],
                     result: 'PASS',
                 },
                 {
@@ -1344,13 +1235,7 @@ const data: Pick<FontBakeryData, 'result' | 'sections'> = {
                         '<FontBakeryCheck:com.klim/check/marks_have_anchors>',
                         [['ufo', 1]],
                     ],
-                    logs: [
-                        {
-                            message: 'All marks have anchors',
-                            status: 'PASS',
-                            traceback: null,
-                        },
-                    ],
+                    logs: [{ message: 'All marks have anchors', status: 'PASS', traceback: null }],
                     result: 'PASS',
                 },
                 {
@@ -1361,13 +1246,7 @@ const data: Pick<FontBakeryData, 'result' | 'sections'> = {
                         '<FontBakeryCheck:com.klim/check/marks_have_anchors>',
                         [['ufo', 2]],
                     ],
-                    logs: [
-                        {
-                            message: 'All marks have anchors',
-                            status: 'PASS',
-                            traceback: null,
-                        },
-                    ],
+                    logs: [{ message: 'All marks have anchors', status: 'PASS', traceback: null }],
                     result: 'PASS',
                 },
                 {
@@ -1378,13 +1257,7 @@ const data: Pick<FontBakeryData, 'result' | 'sections'> = {
                         '<FontBakeryCheck:com.klim/check/marks_have_anchors>',
                         [['ufo', 3]],
                     ],
-                    logs: [
-                        {
-                            message: 'All marks have anchors',
-                            status: 'PASS',
-                            traceback: null,
-                        },
-                    ],
+                    logs: [{ message: 'All marks have anchors', status: 'PASS', traceback: null }],
                     result: 'PASS',
                 },
                 {
@@ -1395,13 +1268,7 @@ const data: Pick<FontBakeryData, 'result' | 'sections'> = {
                         '<FontBakeryCheck:com.klim/check/marks_have_anchors>',
                         [['ufo', 4]],
                     ],
-                    logs: [
-                        {
-                            message: 'All marks have anchors',
-                            status: 'PASS',
-                            traceback: null,
-                        },
-                    ],
+                    logs: [{ message: 'All marks have anchors', status: 'PASS', traceback: null }],
                     result: 'PASS',
                 },
                 {
@@ -1412,13 +1279,7 @@ const data: Pick<FontBakeryData, 'result' | 'sections'> = {
                         '<FontBakeryCheck:com.klim/check/marks_have_anchors>',
                         [['ufo', 5]],
                     ],
-                    logs: [
-                        {
-                            message: 'All marks have anchors',
-                            status: 'PASS',
-                            traceback: null,
-                        },
-                    ],
+                    logs: [{ message: 'All marks have anchors', status: 'PASS', traceback: null }],
                     result: 'PASS',
                 },
                 {
@@ -1429,13 +1290,7 @@ const data: Pick<FontBakeryData, 'result' | 'sections'> = {
                         '<FontBakeryCheck:com.klim/check/marks_have_anchors>',
                         [['ufo', 6]],
                     ],
-                    logs: [
-                        {
-                            message: 'All marks have anchors',
-                            status: 'PASS',
-                            traceback: null,
-                        },
-                    ],
+                    logs: [{ message: 'All marks have anchors', status: 'PASS', traceback: null }],
                     result: 'PASS',
                 },
                 {
@@ -1446,13 +1301,7 @@ const data: Pick<FontBakeryData, 'result' | 'sections'> = {
                         '<FontBakeryCheck:com.klim/check/marks_have_anchors>',
                         [['ufo', 7]],
                     ],
-                    logs: [
-                        {
-                            message: 'All marks have anchors',
-                            status: 'PASS',
-                            traceback: null,
-                        },
-                    ],
+                    logs: [{ message: 'All marks have anchors', status: 'PASS', traceback: null }],
                     result: 'PASS',
                 },
                 {
@@ -1463,13 +1312,7 @@ const data: Pick<FontBakeryData, 'result' | 'sections'> = {
                         '<FontBakeryCheck:com.klim/check/marks_have_anchors>',
                         [['ufo', 8]],
                     ],
-                    logs: [
-                        {
-                            message: 'All marks have anchors',
-                            status: 'PASS',
-                            traceback: null,
-                        },
-                    ],
+                    logs: [{ message: 'All marks have anchors', status: 'PASS', traceback: null }],
                     result: 'PASS',
                 },
                 {
@@ -1480,13 +1323,7 @@ const data: Pick<FontBakeryData, 'result' | 'sections'> = {
                         '<FontBakeryCheck:com.klim/check/marks_have_anchors>',
                         [['ufo', 9]],
                     ],
-                    logs: [
-                        {
-                            message: 'All marks have anchors',
-                            status: 'PASS',
-                            traceback: null,
-                        },
-                    ],
+                    logs: [{ message: 'All marks have anchors', status: 'PASS', traceback: null }],
                     result: 'PASS',
                 },
                 {
@@ -1497,13 +1334,7 @@ const data: Pick<FontBakeryData, 'result' | 'sections'> = {
                         '<FontBakeryCheck:com.klim/check/marks_have_anchors>',
                         [['ufo', 10]],
                     ],
-                    logs: [
-                        {
-                            message: 'All marks have anchors',
-                            status: 'PASS',
-                            traceback: null,
-                        },
-                    ],
+                    logs: [{ message: 'All marks have anchors', status: 'PASS', traceback: null }],
                     result: 'PASS',
                 },
                 {
@@ -1514,13 +1345,7 @@ const data: Pick<FontBakeryData, 'result' | 'sections'> = {
                         '<FontBakeryCheck:com.klim/check/marks_have_anchors>',
                         [['ufo', 11]],
                     ],
-                    logs: [
-                        {
-                            message: 'All marks have anchors',
-                            status: 'PASS',
-                            traceback: null,
-                        },
-                    ],
+                    logs: [{ message: 'All marks have anchors', status: 'PASS', traceback: null }],
                     result: 'PASS',
                 },
             ],
