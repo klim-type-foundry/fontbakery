@@ -49,16 +49,14 @@ const checksById = computed(() => {
     <template v-for="checkById in checksById" :key="checkById.id">
         <h3>{{ checkById.description }}</h3>
         <p>
-            Check ID: <code>{{ formatFontBakeryCheckId(checkById.id) }}</code>
+            <code>ID: {{ formatFontBakeryCheckId(checkById.id) }}</code>
         </p>
-        <p v-if="checkById.rationale">Rationale: {{ checkById.rationale }}</p>
-        <ul>
-            <FontBakeryCheckResult
-                v-for="fontBakeryCheck in checkById.checks"
-                :check="fontBakeryCheck"
-                :key="fontBakeryCheck.key"
-            />
-        </ul>
+        <p v-if="checkById.rationale" class="rationale">Rationale: {{ checkById.rationale }}</p>
+        <FontBakeryCheckResult
+            v-for="fontBakeryCheck in checkById.checks"
+            :check="fontBakeryCheck"
+            :key="fontBakeryCheck.key"
+        />
         <hr />
     </template>
 </template>

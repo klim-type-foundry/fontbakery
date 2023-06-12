@@ -17,6 +17,8 @@ export enum IkonType {
     ARROW_RIGHT = '→',
     CHEVRON_DOWN = '▼',
     CHEVRON_UP = '▲',
+    CHEVRON_RIGHT = '▶',
+    CHEVRON_LEFT = '◀',
     THEME_TOGGLE = '◑',
     EXTERNAL_LINK = '⇗',
     RESET = '⭯',

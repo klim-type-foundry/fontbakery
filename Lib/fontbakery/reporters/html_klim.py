@@ -15,6 +15,11 @@ class KlimHtmlReporter(HTMLReporter):
             fh.write(self.get_html())
         print(f'A report in HTML format has been saved to "{self.output_file}"')
 
+    def getdoc(self):
+        doc = super().getdoc()
+        doc["loglevels"] = self.loglevels
+        return doc
+
     def get_html(self) -> str:
         html_path = os.path.join(
             os.path.dirname(os.path.dirname(__file__)),
@@ -22,6 +27,7 @@ class KlimHtmlReporter(HTMLReporter):
             "dist",
             "index.html",
         )
+        # Write JSON data to global JS variable, followed by the HTML markup
         json_data_string = json.dumps(self.getdoc(), sort_keys=True)
         with open(html_path) as f:
             return f"""<script>window.fontBakeryData = {json_data_string};</script>\n{f.read()}"""

@@ -14,9 +14,11 @@ defineProps<{
 </script>
 
 <template>
-    <li>
-        <span v-html="getFontBakeryStatusEmoji(check.result)" />{{ ` ` }}
-        <code>{{ check.filename ? check.filename : 'Family check' }} </code>
+    <details>
+        <summary>
+            <span v-html="getFontBakeryStatusEmoji(check.result)" />{{ ` ` }}
+            <code>{{ check.filename ? check.filename : 'Family check' }} </code>
+        </summary>
         <ul v-if="FontBakeryLogLevels.includes(check.result)">
             <FontBakeryCheckLog
                 v-for="logEntry in check.logs.filter((log) =>
@@ -26,5 +28,5 @@ defineProps<{
                 :key="logEntry.message"
             />
         </ul>
-    </li>
+    </details>
 </template>

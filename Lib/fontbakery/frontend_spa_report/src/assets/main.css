@@ -7,3 +7,11 @@
 .emo {
   font-family: sans-serif;
 }
+
+details code {
+  font-weight: bold;
+}
+
+.rationale {
+  font-style: italic;
+}

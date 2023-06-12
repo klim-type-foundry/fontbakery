@@ -122,7 +122,7 @@ h2 {
 }
 
 h3 {
-    font-weight: normal;
+    font-weight: bold;
     font-size: 1.5rem;
 }
 
@@ -147,4 +147,21 @@ hr {
   height: 0;
   border-top: 1px solid var(--color-hr);
   margin: 1rem 0;
+}
+
+details > summary {
+    font-family: SoehneIkon, sans-serif;
+    list-style-type: none;
+}
+
+details > summary::-webkit-details-marker {
+    display: none;
+}
+
+details > summary::before {
+    content: '▶ ';
+}
+
+details[open] > summary::before {
+    content: '▼ ';
 }
