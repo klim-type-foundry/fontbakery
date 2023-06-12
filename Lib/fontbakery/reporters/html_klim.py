@@ -24,7 +24,7 @@ class KlimHtmlReporter(HTMLReporter):
         doc["loglevels"] = [
             loglevel.name
             for loglevel in LOG_LEVELS
-            if loglevel < self.loglevels or DEFAULT_LOG_LEVEL
+            if loglevel < (self.loglevels or DEFAULT_LOG_LEVEL)
         ]
         return doc
 
