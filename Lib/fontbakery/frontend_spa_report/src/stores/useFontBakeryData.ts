@@ -1,7 +1,6 @@
 import { defineStore } from 'pinia';
 import devFontBakeryData from '@/data/dev-american-grotesk';
 import getFontBakerySectionKeys from '@/utils/getFontBakerySectionKeys';
-import getFontBakeryStatuses from '@/utils/getFontBakeryStatuses';
 import { FontBakeryLogLevels } from '@/Settings';
 
 export const useFontBakeryData = defineStore('fontBakeryData', {

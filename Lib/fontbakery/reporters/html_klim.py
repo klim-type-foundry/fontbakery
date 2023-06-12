@@ -3,6 +3,10 @@
 import os
 import json
 from fontbakery.reporters.html import HTMLReporter
+from fontbakery.status import DEBUG, PASS, INFO, SKIP, WARN, FAIL, ERROR
+
+DEFAULT_LOG_LEVEL = INFO
+LOG_LEVELS = [DEBUG, PASS, INFO, SKIP, WARN, FAIL, ERROR]
 
 PRODUCTION_JS = False
 
@@ -17,7 +21,11 @@ class KlimHtmlReporter(HTMLReporter):
 
     def getdoc(self):
         doc = super().getdoc()
-        doc["loglevels"] = [loglevel.name for loglevel in self.loglevels]
+        doc["loglevels"] = [
+            loglevel.name
+            for loglevel in LOG_LEVELS
+            if loglevel < self.loglevels or DEFAULT_LOG_LEVEL
+        ]
         return doc
 
     def get_html(self) -> str:
