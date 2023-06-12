@@ -3,12 +3,8 @@
 import os
 import json
 from fontbakery.reporters.html import HTMLReporter
-from fontbakery.status import PASS, INFO, SKIP, WARN, FAIL, ERROR
 
-DEFAULT_LOG_LEVEL = INFO
-LOG_LEVELS = [PASS, INFO, SKIP, WARN, FAIL, ERROR]
-
-PRODUCTION_JS = False
+PRODUCTION_JS = True
 
 
 class KlimHtmlReporter(HTMLReporter):
@@ -19,10 +15,10 @@ class KlimHtmlReporter(HTMLReporter):
             fh.write(self.get_html())
         print(f'A report in HTML format has been saved to "{self.output_file}"')
 
-    def getdoc(self):
-        doc = super().getdoc()
-        doc["loglevels"] = [loglevel.name for loglevel in LOG_LEVELS]
-        return doc
+    # def getdoc(self):
+    #     doc = super().getdoc()
+    #     doc["loglevels"] = [loglevel.name for loglevel in LOG_LEVELS]
+    #     return doc
 
     def get_html(self) -> str:
         html_path = os.path.join(
