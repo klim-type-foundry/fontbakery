@@ -193,3 +193,7 @@ button:hover {
   color: var(--color-background);
   background-color: var(--color-button-border);
 }
+
+label {
+  cursor: pointer;
+}

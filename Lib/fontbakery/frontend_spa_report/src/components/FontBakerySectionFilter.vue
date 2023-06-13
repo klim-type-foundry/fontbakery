@@ -27,10 +27,10 @@ function toggleSelection(event: Events['onClick']) {
 
 <template>
     <h3>Sections</h3>
-    <ul>
+    <ul class="filterList sectionFilter">
         <template v-for="fontBakerySection in fontBakerySections" :key="fontBakerySection.key[0]">
             <li>
-                <label>
+                <label title="Toggle section visibility">
                     <input
                         type="checkbox"
                         :value="fontBakerySection.key[0]"

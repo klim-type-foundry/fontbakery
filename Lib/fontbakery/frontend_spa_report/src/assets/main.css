@@ -25,11 +25,30 @@
   color: var(--color-text-secondary);
 }
 
-li.toggleSelection {
+ul.filterList {
   list-style-type: none;
+  padding-left: 0;
 }
 
 li.toggleSelection button {
     margin: 0.5rem 0;
 
+}
+
+ul.filterList li input {
+  margin-right: 0.2rem;
+}
+
+ul.filterList .resultStatuses {
+  /* Align the status list with the right of the checkbox */
+  margin-left: 1.2rem;
+}
+
+ul.sectionFilter label {
+  font-weight: bold;
+  margin-bottom: 0.5rem;
+}
+
+input[type='checkbox'] {
+  cursor: pointer;
 }

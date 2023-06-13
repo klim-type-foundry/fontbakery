@@ -23,13 +23,13 @@ function toggleSelection(event: Events['onClick']) {
 
 <template>
     <h3>Statuses</h3>
-    <ul>
+    <ul class="filterList">
         <template
             v-for="fontBakeryStatusOption in getFontBakeryStatuses(fontBakeryResults)"
             :key="fontBakeryStatusOption"
         >
             <li v-if="fontBakeryStatusOption in fontBakeryResults">
-                <label>
+                <label title="Toggle status visibility">
                     <input
                         type="checkbox"
                         :value="fontBakeryStatusOption"
