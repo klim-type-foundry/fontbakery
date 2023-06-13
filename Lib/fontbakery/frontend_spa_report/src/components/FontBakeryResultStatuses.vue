@@ -24,7 +24,7 @@ const { filters: fontBakeryFilters } = storeToRefs(fontBakeryDataStore);
             <span v-html="getFontBakeryStatusEmoji(referenceStatus)" />
             {{ ` ` }}
             {{ formatFontBakeryStatus(referenceStatus) }}
-            <span class="count">{{ statuses[referenceStatus].toLocaleString() }}</span
+            <span class="count">{{ (statuses[referenceStatus] || 0).toLocaleString() }}</span
             >{{ ` ` }}
         </span>
     </template>

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { storeToRefs } from 'pinia';
-import { Events } from 'vue/dist/vue';
+import type { Events } from 'vue';
 import { useFontBakeryData } from '@/stores/useFontBakeryData';
 import formatFontBakeryKey from '@/utils/formatFontBakeryKey';
 import FontBakeryResultStatuses from '@/components/FontBakeryResultStatuses.vue';

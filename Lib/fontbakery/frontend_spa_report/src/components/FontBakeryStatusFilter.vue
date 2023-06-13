@@ -41,7 +41,7 @@ function toggleSelection(event: Events['onClick']) {
                     {{ formatFontBakeryStatus(fontBakeryStatusOption) }}
                     {{ ` ` }}
                     <span class="count">{{
-                        fontBakeryResults[fontBakeryStatusOption].toLocaleString()
+                        (fontBakeryResults[fontBakeryStatusOption] || 0).toLocaleString()
                     }}</span>
                 </label>
             </li>
