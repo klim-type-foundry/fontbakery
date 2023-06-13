@@ -26,28 +26,33 @@ function toggleSelection(event: Events['onClick']) {
 </script>
 
 <template>
-    <h3>Sections</h3>
-    <ul class="filterList sectionFilter">
-        <template v-for="fontBakerySection in fontBakerySections" :key="fontBakerySection.key[0]">
-            <li>
-                <label title="Toggle section visibility">
-                    <input
-                        type="checkbox"
-                        :value="fontBakerySection.key[0]"
-                        v-model="fontBakeryDataStore.filters.sectionKey"
-                    />{{ ` ` }}{{ formatFontBakeryKey(fontBakerySection.key) }}</label
-                >{{ ` ` }}
-                <a
-                    :href="`#${formatHtmlIdFromFontBakeryKey(fontBakerySection.key)}`"
-                    :title="`Jump to section: ${formatFontBakeryKey(fontBakerySection.key)}`"
-                    class="ikon"
-                    >{{ IkonType.JUMP_BACK }}</a
-                ><br />
-                <FontBakeryResultStatuses :statuses="fontBakerySection.result" />
-            </li>
-        </template>
-        <li class="toggleSelection"><button @click="toggleSelection">Toggle all</button></li>
-    </ul>
+    <div class="filterContainer">
+        <h3>Sections</h3>
+        <ul class="filterList sectionFilter">
+            <template
+                v-for="fontBakerySection in fontBakerySections"
+                :key="fontBakerySection.key[0]"
+            >
+                <li>
+                    <label title="Toggle section visibility">
+                        <input
+                            type="checkbox"
+                            :value="fontBakerySection.key[0]"
+                            v-model="fontBakeryDataStore.filters.sectionKey"
+                        />{{ ` ` }}{{ formatFontBakeryKey(fontBakerySection.key) }}</label
+                    >{{ ` ` }}
+                    <a
+                        :href="`#${formatHtmlIdFromFontBakeryKey(fontBakerySection.key)}`"
+                        :title="`Jump to section: ${formatFontBakeryKey(fontBakerySection.key)}`"
+                        class="ikon"
+                        >{{ IkonType.JUMP_BACK }}</a
+                    ><br />
+                    <FontBakeryResultStatuses :statuses="fontBakerySection.result" />
+                </li>
+            </template>
+            <li class="toggleSelection"><button @click="toggleSelection">Toggle all</button></li>
+        </ul>
+    </div>
 </template>
 
 <style scoped></style>

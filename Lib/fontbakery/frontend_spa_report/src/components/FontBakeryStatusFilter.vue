@@ -22,32 +22,34 @@ function toggleSelection(event: Events['onClick']) {
 </script>
 
 <template>
-    <h3>Statuses</h3>
-    <ul class="filterList">
-        <template
-            v-for="fontBakeryStatusOption in getFontBakeryStatuses(fontBakeryResults)"
-            :key="fontBakeryStatusOption"
-        >
-            <li v-if="fontBakeryStatusOption in fontBakeryResults">
-                <label title="Toggle status visibility">
-                    <input
-                        type="checkbox"
-                        :value="fontBakeryStatusOption"
-                        v-model="fontBakeryFilters.status"
-                    />
-                    {{ ` ` }}
-                    <span v-html="getFontBakeryStatusEmoji(fontBakeryStatusOption)" />
-                    {{ ` ` }}
-                    {{ formatFontBakeryStatus(fontBakeryStatusOption) }}
-                    {{ ` ` }}
-                    <span class="count">{{
-                        (fontBakeryResults[fontBakeryStatusOption] || 0).toLocaleString()
-                    }}</span>
-                </label>
-            </li>
-        </template>
-        <li class="toggleSelection"><button @click="toggleSelection">Toggle all</button></li>
-    </ul>
+    <div class="filterContainer">
+        <h3>Statuses</h3>
+        <ul class="filterList">
+            <template
+                v-for="fontBakeryStatusOption in getFontBakeryStatuses(fontBakeryResults)"
+                :key="fontBakeryStatusOption"
+            >
+                <li v-if="fontBakeryStatusOption in fontBakeryResults">
+                    <label title="Toggle status visibility">
+                        <input
+                            type="checkbox"
+                            :value="fontBakeryStatusOption"
+                            v-model="fontBakeryFilters.status"
+                        />
+                        {{ ` ` }}
+                        <span v-html="getFontBakeryStatusEmoji(fontBakeryStatusOption)" />
+                        {{ ` ` }}
+                        {{ formatFontBakeryStatus(fontBakeryStatusOption) }}
+                        {{ ` ` }}
+                        <span class="count">{{
+                            (fontBakeryResults[fontBakeryStatusOption] || 0).toLocaleString()
+                        }}</span>
+                    </label>
+                </li>
+            </template>
+            <li class="toggleSelection"><button @click="toggleSelection">Toggle all</button></li>
+        </ul>
+    </div>
 </template>
 
 <style scoped></style>
