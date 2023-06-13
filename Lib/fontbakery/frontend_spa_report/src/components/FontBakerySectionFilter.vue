@@ -5,6 +5,7 @@ import { useFontBakeryData } from '@/stores/useFontBakeryData';
 import formatFontBakeryKey from '@/utils/formatFontBakeryKey';
 import FontBakeryResultStatuses from '@/components/FontBakeryResultStatuses.vue';
 import formatHtmlIdFromFontBakeryKey from '@/utils/formatHtmlIdFromFontBakeryKey';
+import { IkonType } from '@/Settings';
 
 const fontBakeryDataStore = useFontBakeryData();
 const { sections: fontBakerySections, filters: fontBakeryFilters } =
@@ -29,14 +30,18 @@ function toggleSelection(event: Events['onClick']) {
     <ul>
         <template v-for="fontBakerySection in fontBakerySections" :key="fontBakerySection.key[0]">
             <li>
-                <input
-                    type="checkbox"
-                    :value="fontBakerySection.key[0]"
-                    v-model="fontBakeryDataStore.filters.sectionKey"
-                />{{ ` ` }}
-                <a :href="`#${formatHtmlIdFromFontBakeryKey(fontBakerySection.key)}`">{{
-                    formatFontBakeryKey(fontBakerySection.key)
-                }}</a
+                <label>
+                    <input
+                        type="checkbox"
+                        :value="fontBakerySection.key[0]"
+                        v-model="fontBakeryDataStore.filters.sectionKey"
+                    />{{ ` ` }}{{ formatFontBakeryKey(fontBakerySection.key) }}</label
+                >{{ ` ` }}
+                <a
+                    :href="`#${formatHtmlIdFromFontBakeryKey(fontBakerySection.key)}`"
+                    :title="`Jump to section: ${formatFontBakeryKey(fontBakerySection.key)}`"
+                    class="ikon"
+                    >{{ IkonType.JUMP_BACK }}</a
                 ><br />
                 <FontBakeryResultStatuses :statuses="fontBakerySection.result" />
             </li>

@@ -23,6 +23,7 @@ export enum IkonType {
     EXTERNAL_LINK = '⇗',
     RESET = '⭯',
     BUILD_TIME = '⭍',
+    JUMP_BACK = '⤴',
 }
 
 /**
