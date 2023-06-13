@@ -31,6 +31,7 @@ export enum IkonType {
  */
 export const FontBakeryLogLevels: FontBakeryStatus[] = ['WARN', 'ERROR', 'FAIL'];
 
+// This array also determines the order in which statuses will show
 export const CheckStatusEmoji: Record<FontBakeryStatus, string> = {
     ERROR: '💥',
     FAIL: '🔥',
@@ -40,3 +41,6 @@ export const CheckStatusEmoji: Record<FontBakeryStatus, string> = {
     PASS: '✅',
     DEBUG: '🔎',
 };
+export const CheckStatusSortOrder: FontBakeryStatus[] = Object.keys(
+    CheckStatusEmoji,
+) as FontBakeryStatus[];

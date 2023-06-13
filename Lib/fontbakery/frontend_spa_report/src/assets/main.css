@@ -8,10 +8,28 @@
   font-family: sans-serif;
 }
 
-details code {
+.filename {
   font-weight: bold;
 }
 
 .rationale {
-  font-style: italic;
+  color: var(--color-text-secondary);
+}
+
+.statusHidden {
+  opacity: 0.5;
+}
+
+.count {
+  font-feature-settings: 'tnum';
+  color: var(--color-text-secondary);
+}
+
+li.toggleSelection {
+  list-style-type: none;
+}
+
+li.toggleSelection button {
+    margin: 0.5rem 0;
+
 }

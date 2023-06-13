@@ -37,6 +37,7 @@
   --color-heading: var(--theme-text-light-1);
   --color-heading-1: var(--theme-green);
   --color-text: var(--theme-text-light-1);
+  --color-text-secondary: var(--theme-text-light-2);
 
   --color-link: var(--theme-green);
   --color-link-hover: var(--theme-dark-green);
@@ -46,6 +47,8 @@
   --color-nav-background: var(--theme-white-mute);
 
   --section-gap: 160px;
+
+  --color-button-border: var(--color-text);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -59,7 +62,8 @@
 
     --color-heading: var(--theme-text-dark-1);
     --color-heading-1: var(--theme-green);
-    --color-text: var(--theme-text-dark-2);
+    --color-text: var(--theme-text-dark-1);
+    --color-text-secondary: var(--theme-text-dark-2);
 
     --color-link: var(--theme-dark-green);
     --color-link-hover: var(--theme-green);
@@ -79,7 +83,7 @@
 }
 
 body {
-  min-height: 100vh;
+  min-height: 100%;
   color: var(--color-text);
   background: var(--color-background);
   transition: color 0.5s, background-color 0.5s;
@@ -95,16 +99,23 @@ body {
 main {
   padding: 2rem;
   max-width: 62vw;
+  position: fixed;
+  overflow-y: scroll;
+  min-height: 100%;
+  top: 0;
+  bottom: 0;
 }
 
 nav {
   position: fixed;
   top: 0;
   right: 0;
+  bottom: 0;
   width: 38vw;
   min-height: 100%;
   background-color: var(--color-nav-background);
   padding: 2rem;
+  overflow-y: scroll;
 }
 
 h1, h2, h3, h4, h5 {
@@ -164,4 +175,21 @@ details > summary::before {
 
 details[open] > summary::before {
     content: '▼ ';
+}
+
+button {
+  padding: 0.4rem 0.6rem;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+  background-color: transparent;
+  border: 1px solid var(--color-button-border);
+  vertical-align: middle;
+  cursor: pointer;
+  border-radius: 0.2rem;
+}
+
+button:hover {
+  color: var(--color-background);
+  background-color: var(--color-button-border);
 }

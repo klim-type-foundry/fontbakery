@@ -4,9 +4,21 @@ import { useFontBakeryData } from '@/stores/useFontBakeryData';
 import formatFontBakeryStatus from '@/utils/formatFontBakeryStatus.js';
 import getFontBakeryStatuses from '@/utils/getFontBakeryStatuses';
 import getFontBakeryStatusEmoji from '@/utils/getFontBakeryStatusEmoji';
+import type { Events } from 'vue';
 
 const fontBakeryDataStore = useFontBakeryData();
-const { result: fontBakeryResults } = storeToRefs(fontBakeryDataStore);
+const { result: fontBakeryResults, filters: fontBakeryFilters } = storeToRefs(fontBakeryDataStore);
+
+function toggleSelection(event: Events['onClick']) {
+    event.preventDefault();
+    if (fontBakeryFilters.value.status.length === Object.keys(fontBakeryResults.value).length) {
+        fontBakeryDataStore.setStatusFilter([]);
+    } else {
+        fontBakeryDataStore.setStatusFilter(
+            Object.keys(fontBakeryResults.value) as FontBakeryStatus[],
+        );
+    }
+}
 </script>
 
 <template>
@@ -21,17 +33,20 @@ const { result: fontBakeryResults } = storeToRefs(fontBakeryDataStore);
                     <input
                         type="checkbox"
                         :value="fontBakeryStatusOption"
-                        v-model="fontBakeryDataStore.filters.status"
+                        v-model="fontBakeryFilters.status"
                     />
                     {{ ` ` }}
                     <span v-html="getFontBakeryStatusEmoji(fontBakeryStatusOption)" />
                     {{ ` ` }}
                     {{ formatFontBakeryStatus(fontBakeryStatusOption) }}
                     {{ ` ` }}
-                    <span class="ikon">({{ fontBakeryResults[fontBakeryStatusOption] }})</span>
+                    <span class="count">{{
+                        fontBakeryResults[fontBakeryStatusOption].toLocaleString()
+                    }}</span>
                 </label>
             </li>
         </template>
+        <li class="toggleSelection"><button @click="toggleSelection">Toggle all</button></li>
     </ul>
 </template>
 
