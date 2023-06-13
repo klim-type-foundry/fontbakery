@@ -1,7 +1,7 @@
 /// <reference types="vite/client" />
 type FontBakeryStatus = 'ERROR' | 'FAIL' | 'PASS' | 'WARN' | 'INFO' | 'SKIP' | 'DEBUG';
 
-type FontBakeryKey = [string, string | null, [[string, number]] | null];
+type FontBakeryKey = [string, string | null, [[string, number]] | [] | null];
 
 interface FontBakeryResultStatuses {
     ERROR?: number;
@@ -26,6 +26,7 @@ interface FontBakeryCheck {
     logs: FontBakeryLog[];
     result: FontBakeryStatus;
     rationale?: string;
+    severity?: number;
 }
 
 interface FontBakerySection {

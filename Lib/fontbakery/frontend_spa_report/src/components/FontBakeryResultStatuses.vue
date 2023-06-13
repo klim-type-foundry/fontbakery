@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import formatFontBakeryStatus from '@/utils/formatFontBakeryStatus.js';
 import getFontBakeryStatusEmoji from '@/utils/getFontBakeryStatusEmoji';
+import { FontBakeryLogLevels } from '@/Settings';
 
 defineProps<{
     statuses: FontBakeryResultStatuses;

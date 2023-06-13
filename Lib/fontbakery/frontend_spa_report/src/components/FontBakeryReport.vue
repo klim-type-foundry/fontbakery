@@ -32,6 +32,7 @@ const filteredSections = computed(() => {
                 )
             "
         />
+        <hr />
     </template>
 </template>
 

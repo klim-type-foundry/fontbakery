@@ -57,7 +57,6 @@ const checksById = computed(() => {
             :check="fontBakeryCheck"
             :key="fontBakeryCheck.key[0]"
         />
-        <hr />
     </template>
 </template>
 
