@@ -6,6 +6,7 @@ import formatFontBakeryKey from '@/utils/formatFontBakeryKey';
 import FontBakeryResultStatuses from '@/components/FontBakeryResultStatuses.vue';
 import formatHtmlIdFromFontBakeryKey from '@/utils/formatHtmlIdFromFontBakeryKey';
 import FontBakeryChecks from '@/components/FontBakeryChecks.vue';
+import getFontTypeFromFilePath from '@/utils/getFontTypeFromFilePath';
 
 const fontBakeryDataStore = useFontBakeryData();
 const { sections: fontBakerySections, filters: fontBakeryFilters } =
@@ -27,8 +28,12 @@ const filteredSections = computed(() => {
         <FontBakeryResultStatuses :statuses="fontBakerySection.result" />
         <FontBakeryChecks
             :checks="
-                fontBakerySection.checks.filter((check) =>
-                    fontBakeryFilters.status.includes(check.result),
+                fontBakerySection.checks.filter(
+                    (check) =>
+                        fontBakeryFilters.status.includes(check.result) &&
+                        fontBakeryFilters.fontType.includes(
+                            getFontTypeFromFilePath(check.filename),
+                        ),
                 )
             "
         />

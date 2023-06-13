@@ -17,7 +17,7 @@ defineProps<{
     <details>
         <summary>
             <span v-html="getFontBakeryStatusEmoji(check.result)" />{{ ` ` }}
-            <span class="filename">{{ check.filename ? check.filename : 'Family check' }} </span>
+            <span class="filename">{{ check.filename ? check.filename : 'Whole family' }} </span>
         </summary>
         <ul v-if="FontBakeryLogLevels.includes(check.result)">
             <FontBakeryCheckLog

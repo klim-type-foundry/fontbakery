@@ -1,6 +1,8 @@
 /// <reference types="vite/client" />
 type FontBakeryStatus = 'ERROR' | 'FAIL' | 'PASS' | 'WARN' | 'INFO' | 'SKIP' | 'DEBUG';
 
+type FontBakeryFontType = 'OTF' | 'TTF' | 'UFO' | 'WOFF2' | 'Whole family';
+
 type FontBakeryKey = [string, string | null, [[string, number]] | [] | null];
 
 interface FontBakeryResultStatuses {
@@ -38,9 +40,12 @@ interface FontBakerySection {
 interface FontBakeryData {
     result: FontBakeryResultStatuses;
     sections: FontBakerySection[];
+    allFontTypes: FontBakeryFontType[];
+    fontTypeCheckCounts: Record<FontBakeryFontType, number>;
     filters: {
         status: FontBakeryStatus[];
         sectionKey: string[];
+        fontType: FontBakeryFontType[];
     };
 }
 

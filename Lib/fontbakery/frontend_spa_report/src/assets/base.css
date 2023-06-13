@@ -98,6 +98,7 @@ body {
 
 main {
   padding: 2rem;
+  width: 62vw;
   max-width: 62vw;
   position: fixed;
   overflow-y: scroll;

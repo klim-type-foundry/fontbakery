@@ -2,20 +2,30 @@ import { defineStore } from 'pinia';
 import devFontBakeryData from '@/data/dev-american-grotesk-mastering';
 import getFontBakerySectionKeys from '@/utils/getFontBakerySectionKeys';
 import { FontBakeryLogLevels } from '@/Settings';
+import getFontTypeFromFilePath from '@/utils/getFontTypeFromFilePath';
 
 export const useFontBakeryData = defineStore('fontBakeryData', {
     state: (): FontBakeryData => ({
         result: {},
         sections: [],
+        allFontTypes: [],
+        fontTypeCheckCounts: {
+            OTF: 0,
+            TTF: 0,
+            UFO: 0,
+            WOFF2: 0,
+            'Whole family': 0,
+        },
         filters: {
             status: [],
             sectionKey: [],
+            fontType: [],
         },
     }),
-    getters: {
-        sectionByKey: (state) => (key: string) =>
-            state.sections.find((section) => section.key[0] === key),
-    },
+    // getters: {
+    //     sectionByKey: (state) => (key: string) =>
+    //         state.sections.find((section) => section.key[0] === key),
+    // },
     actions: {
         resetSectionKeyFilter() {
             this.filters.sectionKey = getFontBakerySectionKeys(this.sections);
@@ -28,6 +38,12 @@ export const useFontBakeryData = defineStore('fontBakeryData', {
         },
         setStatusFilter(statuses: FontBakeryStatus[]) {
             this.filters.status = statuses;
+        },
+        resetFontTypeFilter() {
+            this.filters.fontType = this.allFontTypes;
+        },
+        setFontTypeFilter(fontTypes: FontBakeryFontType[]) {
+            this.filters.fontType = fontTypes;
         },
         fetchFontBakeryData() {
             if (import.meta.env.DEV) {
@@ -45,9 +61,21 @@ export const useFontBakeryData = defineStore('fontBakeryData', {
             // this.sections.forEach((section) => {
             //   section.result
             // })
-            // Default to showing all statuses and sections
+            // Populate the font types that are present in this report
+            this.sections.forEach((section) => {
+                section.checks.forEach((check) => {
+                    const fontType = getFontTypeFromFilePath(check.filename);
+                    if (!this.allFontTypes.includes(fontType)) {
+                        this.allFontTypes.push(fontType);
+                    }
+                    this.fontTypeCheckCounts[fontType] += 1;
+                });
+            });
+            this.allFontTypes.sort();
+            // Default to showing all statuses, font types and sections
             this.resetSectionKeyFilter();
             this.resetStatusFilter();
+            this.resetFontTypeFilter();
         },
     },
 });
