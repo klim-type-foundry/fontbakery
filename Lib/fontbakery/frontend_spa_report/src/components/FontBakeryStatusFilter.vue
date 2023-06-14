@@ -23,7 +23,7 @@ function toggleSelection(event: Events['onClick']) {
 
 <template>
     <div class="filterContainer">
-        <h3>Statuses</h3>
+        <h3>Status</h3>
         <ul class="filterList">
             <template
                 v-for="fontBakeryStatusOption in getFontBakeryStatuses(fontBakeryResults)"

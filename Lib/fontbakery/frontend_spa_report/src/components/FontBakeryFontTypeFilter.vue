@@ -22,7 +22,7 @@ function toggleSelection(event: Events['onClick']) {
 
 <template>
     <div class="filterContainer">
-        <h3>Font types</h3>
+        <h3>Font type</h3>
         <ul class="filterList">
             <template v-for="fontType in allFontTypes" :key="fontType">
                 <li>

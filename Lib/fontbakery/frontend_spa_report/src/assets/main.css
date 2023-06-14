@@ -4,6 +4,37 @@
   font-family: SoehneIkon, sans-serif;
 }
 
+main,
+nav {
+  padding: 2rem;
+  overflow-y: scroll;
+  height: 100vh;
+}
+
+.gridContainer,
+.backgroundContainer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: grid;
+  grid-template-columns: 62% 38%;
+  grid-column-gap: 0;
+  height: 100vh;
+}
+
+.gridContainer {
+  align-items: baseline;
+}
+
+.backgroundContainer {
+  width: 100vw;
+}
+
+.backgroundNav {
+  background-color: var(--color-nav-background);
+  height: 100vh;
+}
+
 .emo {
   font-family: sans-serif;
 }

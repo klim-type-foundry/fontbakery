@@ -96,29 +96,6 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-main {
-  padding: 2rem;
-  width: 62vw;
-  max-width: 62vw;
-  position: fixed;
-  overflow-y: scroll;
-  min-height: 100%;
-  top: 0;
-  bottom: 0;
-}
-
-nav {
-  position: fixed;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  width: 38vw;
-  min-height: 100%;
-  background-color: var(--color-nav-background);
-  padding: 2rem;
-  overflow-y: scroll;
-}
-
 h1, h2, h3, h4, h5 {
   color: var(--color-heading);
 }
@@ -150,7 +127,8 @@ a {
   }
 }
 
-pre, code {
+pre,
+code {
   font-family: SoehneMono, monospace;
 }
 
