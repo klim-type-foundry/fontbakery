@@ -10,6 +10,7 @@ export const useFontBakeryData = defineStore('fontBakeryData', {
         sections: [],
         allFontTypes: [],
         fontTypeCheckCounts: {
+            DESIGNSPACE: 0,
             OTF: 0,
             TTF: 0,
             UFO: 0,

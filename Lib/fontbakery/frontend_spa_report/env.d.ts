@@ -1,7 +1,7 @@
 /// <reference types="vite/client" />
 type FontBakeryStatus = 'ERROR' | 'FAIL' | 'PASS' | 'WARN' | 'INFO' | 'SKIP' | 'DEBUG';
 
-type FontBakeryFontType = 'OTF' | 'TTF' | 'UFO' | 'WOFF2' | 'Whole family';
+type FontBakeryFontType = 'OTF' | 'TTF' | 'UFO' | 'WOFF2' | 'DESIGNSPACE' | 'Whole family';
 
 type FontBakeryKey = [string, string | null, [[string, number]] | [] | null];
 
