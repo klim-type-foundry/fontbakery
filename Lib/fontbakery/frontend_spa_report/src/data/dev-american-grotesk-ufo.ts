@@ -1,5 +1,5 @@
-const data: Pick<FontBakeryData, 'result' | 'sections' | 'outputFile'> = {
-    outputFile: 'reports/design-report.html',
+const data: Pick<FontBakeryData, 'result' | 'sections' | 'reportTitle'> = {
+    reportTitle: 'Design report',
     result: { ERROR: 10, FAIL: 2, PASS: 56, WARN: 12 },
     sections: [
         {

@@ -6,7 +6,7 @@ import getFontTypeFromFilePath from '@/utils/getFontTypeFromFilePath';
 
 export const useFontBakeryData = defineStore('fontBakeryData', {
     state: (): FontBakeryData => ({
-        outputFile: '',
+        reportTitle: null,
         result: {},
         sections: [],
         allFontTypes: [],
@@ -52,7 +52,7 @@ export const useFontBakeryData = defineStore('fontBakeryData', {
                 // In development, load the imported test data
                 this.result = devFontBakeryData.result;
                 this.sections = devFontBakeryData.sections;
-                this.outputFile = devFontBakeryData.outputFile;
+                this.reportTitle = devFontBakeryData.reportTitle;
             } else {
                 // Check whether we've already fetched the data
                 if (this.sections.length > 0) {
@@ -64,7 +64,7 @@ export const useFontBakeryData = defineStore('fontBakeryData', {
                 // @ts-ignore TODO: fix window.fontBakeryData TS
                 this.sections = window.fontBakeryData.sections;
                 // @ts-ignore TODO: fix window.fontBakeryData TS
-                this.outputFile = window.fontBakeryData.outputFile;
+                this.reportTitle = window.fontBakeryData.reportTitle;
             }
             // // Sort all the result statuses
             // this.sections.forEach((section) => {

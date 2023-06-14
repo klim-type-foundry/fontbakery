@@ -38,7 +38,7 @@ interface FontBakerySection {
 }
 
 interface FontBakeryData {
-    outputFile: string;
+    reportTitle: string | null;
     result: FontBakeryResultStatuses;
     sections: FontBakerySection[];
     allFontTypes: FontBakeryFontType[];
