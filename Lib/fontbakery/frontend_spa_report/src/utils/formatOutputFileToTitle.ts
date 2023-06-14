@@ -5,5 +5,5 @@ export default function formatOutputFileToTitle(outputFile: string): string {
     if (!filename) {
         filename = outputFile;
     }
-    return capitalize(filename.replace(/\.[^/.]+$/, '').replace('-', ' '));
+    return capitalize(filename.replace(/\.[^/.]+$/, '').replace('-', ' ')).replace('Ufo', 'UFO');
 }
