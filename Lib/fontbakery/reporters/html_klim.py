@@ -13,6 +13,9 @@ class KlimHtmlReporter(HTMLReporter):
     """
 
     def __init__(self, report_title, **kwargs):
+        print("DFKLFLDSKFLSDFKDSLFKDS")
+        print(kwargs)
+        exit()
         super().__init__(**kwargs)
         self.report_title = report_title
 
