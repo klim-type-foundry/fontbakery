@@ -46,4 +46,11 @@ export const CheckStatusSortOrder: FontBakeryStatus[] = Object.keys(
     CheckStatusEmoji,
 ) as FontBakeryStatus[];
 
-export const AllFontTypes: FontBakeryFontType[] = ['OTF', 'TTF', 'UFO', 'WOFF2', 'Whole family'];
+export const AllFontTypes: FontBakeryFontType[] = [
+    'OTF',
+    'TTF',
+    'UFO',
+    'WOFF2',
+    'DESIGNSPACE',
+    'Whole family',
+];

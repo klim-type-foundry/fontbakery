@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import devFontBakeryData from '@/data/dev-american-grotesk-mastering';
+import devFontBakeryData from '@/data/dev-american-grotesk-ufo';
 import getFontBakerySectionKeys from '@/utils/getFontBakerySectionKeys';
 import { FontBakeryLogLevels } from '@/Settings';
 import getFontTypeFromFilePath from '@/utils/getFontTypeFromFilePath';
