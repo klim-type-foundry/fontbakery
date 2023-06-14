@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import devFontBakeryData from '@/data/dev-american-grotesk-ufo';
+import devFontBakeryData from '@/data/dev-american-grotesk-mastering';
 import getFontBakerySectionKeys from '@/utils/getFontBakerySectionKeys';
 import { FontBakeryLogLevels } from '@/Settings';
 import getFontTypeFromFilePath from '@/utils/getFontTypeFromFilePath';
@@ -52,6 +52,10 @@ export const useFontBakeryData = defineStore('fontBakeryData', {
                 this.result = devFontBakeryData.result;
                 this.sections = devFontBakeryData.sections;
             } else {
+                // Check whether we've already fetched the data
+                if (this.sections.length > 0) {
+                    return;
+                }
                 // In production, load from the window object (as set by Font Bakery's build process)
                 // @ts-ignore TODO: fix window.fontBakeryData TS
                 this.result = window.fontBakeryData.result;

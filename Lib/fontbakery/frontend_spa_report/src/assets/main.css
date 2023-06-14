@@ -13,7 +13,11 @@
 }
 
 .rationale {
-  color: var(--color-text-secondary);
+    color: var(--color-text-secondary);
+}
+
+.fontBakeryMessage {
+  white-space: pre;
 }
 
 .statusHidden {

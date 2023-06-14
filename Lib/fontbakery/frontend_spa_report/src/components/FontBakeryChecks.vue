@@ -3,6 +3,7 @@ import FontBakeryCheckResult from '@/components/FontBakeryCheckResult.vue';
 import { computed } from 'vue';
 import formatFontBakeryCheckId from '../utils/formatFontBakeryCheckId';
 import sortChecksByFilename from '@/utils/sortChecksByFilename';
+import formatFontBakeryMessage from '@/utils/formatFontBakeryMessage';
 
 const props = defineProps<{
     checks: FontBakeryCheck[];
@@ -28,7 +29,7 @@ const checksById = computed(() => {
             checksGroup = {
                 id: checkId,
                 description: check.description,
-                rationale: check.rationale,
+                rationale: check.rationale?.trim(),
                 checks: [],
             };
         }
@@ -51,7 +52,10 @@ const checksById = computed(() => {
         <p>
             <code>ID: {{ formatFontBakeryCheckId(checkById.id) }}</code>
         </p>
-        <p v-if="checkById.rationale" class="rationale">Rationale: {{ checkById.rationale }}</p>
+        <details v-if="checkById.rationale" class="fontBakeryMessage rationale">
+            <summary>Rationale</summary>
+            <div v-html="formatFontBakeryMessage(checkById.rationale)"></div>
+        </details>
         <FontBakeryCheckResult
             v-for="fontBakeryCheck in checkById.checks"
             :check="fontBakeryCheck"

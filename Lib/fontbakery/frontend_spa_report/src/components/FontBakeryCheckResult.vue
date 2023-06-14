@@ -3,7 +3,6 @@ import FontBakeryCheckLog from '@/components/FontBakeryCheckLog.vue';
 import getFontBakeryStatusEmoji from '@/utils/getFontBakeryStatusEmoji';
 import { useFontBakeryData } from '@/stores/useFontBakeryData';
 import { storeToRefs } from 'pinia';
-import { FontBakeryLogLevels } from '@/Settings';
 
 const fontBakeryDataStore = useFontBakeryData();
 const { filters: fontBakeryFilters } = storeToRefs(fontBakeryDataStore);
@@ -19,7 +18,7 @@ defineProps<{
             <span v-html="getFontBakeryStatusEmoji(check.result)" />{{ ` ` }}
             <span class="filename">{{ check.filename ? check.filename : 'Whole family' }} </span>
         </summary>
-        <ul v-if="FontBakeryLogLevels.includes(check.result)">
+        <ul>
             <FontBakeryCheckLog
                 v-for="logEntry in check.logs.filter((log) =>
                     fontBakeryFilters.status.includes(log.status),
