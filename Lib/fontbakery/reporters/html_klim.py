@@ -8,16 +8,7 @@ PRODUCTION_JS = True
 
 
 class KlimHtmlReporter(HTMLReporter):
-    """
-    Renders a report as a Single Page Application HTML document.
-    """
-
-    def __init__(self, report_title=None, **kwargs):
-        print("DFKLFLDSKFLSDFKDSLFKDS")
-        print(kwargs)
-        exit()
-        super().__init__(**kwargs)
-        self.report_title = report_title
+    """Renders a report as a HTML document."""
 
     def write(self):
         with open(self.output_file, "w", encoding="utf-8") as fh:
@@ -26,7 +17,7 @@ class KlimHtmlReporter(HTMLReporter):
 
     def getdoc(self):
         doc = super().getdoc()
-        doc["reportTitle"] = self.report_title
+        doc["outputFile"] = self.output_file
         return doc
 
     def get_html(self) -> str:

@@ -243,13 +243,6 @@ def ArgumentParser(profile, profile_arg=True):
         help="Write a custom HTML report to HTML_FILE.",
     )
 
-    argument_parser.add_argument(
-        "--report-title",
-        default=None,
-        type=str,
-        help="Set the report title.",
-    )
-
     iterargs = sorted(profile.iterargs.keys())
 
     gather_by_choices = iterargs + ["*check"]

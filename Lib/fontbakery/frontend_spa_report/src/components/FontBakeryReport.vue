@@ -7,12 +7,13 @@ import FontBakeryResultStatuses from '@/components/FontBakeryResultStatuses.vue'
 import formatHtmlIdFromFontBakeryKey from '@/utils/formatHtmlIdFromFontBakeryKey';
 import FontBakeryChecks from '@/components/FontBakeryChecks.vue';
 import getFontTypeFromFilePath from '@/utils/getFontTypeFromFilePath';
+import formatOutputFileToTitle from '@/utils/formatOutputFileToTitle';
 
 const fontBakeryDataStore = useFontBakeryData();
 const {
     sections: fontBakerySections,
     filters: fontBakeryFilters,
-    reportTitle,
+    outputFile,
 } = storeToRefs(fontBakeryDataStore);
 
 const filteredSections = computed(() => {
@@ -23,7 +24,7 @@ const filteredSections = computed(() => {
 </script>
 
 <template>
-    <h1>{{ reportTitle || 'Font Bakery report' }}</h1>
+    <h1>{{ formatOutputFileToTitle(outputFile) }}</h1>
     <template v-for="fontBakerySection in filteredSections" :key="fontBakerySection.key">
         <h2 :id="formatHtmlIdFromFontBakeryKey(fontBakerySection.key)">
             {{ formatFontBakeryKey(fontBakerySection.key) }}
