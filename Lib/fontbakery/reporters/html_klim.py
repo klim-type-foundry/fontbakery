@@ -12,7 +12,7 @@ class KlimHtmlReporter(HTMLReporter):
     Renders a report as a Single Page Application HTML document.
     """
 
-    def __init__(self, report_title, **kwargs):
+    def __init__(self, report_title=None, **kwargs):
         print("DFKLFLDSKFLSDFKDSLFKDS")
         print(kwargs)
         exit()
