@@ -1,11 +1,12 @@
 import { defineStore } from 'pinia';
-import devFontBakeryData from '@/data/dev-american-grotesk-mastering';
+import devFontBakeryData from '@/data/dev-american-grotesk-ufo';
 import getFontBakerySectionKeys from '@/utils/getFontBakerySectionKeys';
 import { FontBakeryLogLevels } from '@/Settings';
 import getFontTypeFromFilePath from '@/utils/getFontTypeFromFilePath';
 
 export const useFontBakeryData = defineStore('fontBakeryData', {
     state: (): FontBakeryData => ({
+        outputFile: '',
         result: {},
         sections: [],
         allFontTypes: [],
@@ -51,6 +52,7 @@ export const useFontBakeryData = defineStore('fontBakeryData', {
                 // In development, load the imported test data
                 this.result = devFontBakeryData.result;
                 this.sections = devFontBakeryData.sections;
+                this.outputFile = devFontBakeryData.outputFile;
             } else {
                 // Check whether we've already fetched the data
                 if (this.sections.length > 0) {
@@ -61,6 +63,8 @@ export const useFontBakeryData = defineStore('fontBakeryData', {
                 this.result = window.fontBakeryData.result;
                 // @ts-ignore TODO: fix window.fontBakeryData TS
                 this.sections = window.fontBakeryData.sections;
+                // @ts-ignore TODO: fix window.fontBakeryData TS
+                this.outputFile = window.fontBakeryData.outputFile;
             }
             // // Sort all the result statuses
             // this.sections.forEach((section) => {

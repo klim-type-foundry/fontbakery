@@ -15,10 +15,10 @@ class KlimHtmlReporter(HTMLReporter):
             fh.write(self.get_html())
         print(f'A report in HTML format has been saved to "{self.output_file}"')
 
-    # def getdoc(self):
-    #     doc = super().getdoc()
-    #     doc["loglevels"] = [loglevel.name for loglevel in LOG_LEVELS]
-    #     return doc
+    def getdoc(self):
+        doc = super().getdoc()
+        doc["outputFile"] = self.output_file
+        return doc
 
     def get_html(self) -> str:
         html_path = os.path.join(
