@@ -1,9 +1,8 @@
 export default function formatIsoDateTime(isoDateTime: string): string {
     if (!isoDateTime) {
-        return;
+        return '';
     }
     const date = new Date(isoDateTime);
-    console.log(date);
     if (date.getFullYear() <= 1970) {
         throw Error(`Invalid date: ${isoDateTime} -> ${date}`);
     }
