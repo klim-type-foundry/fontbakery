@@ -1,5 +1,3 @@
-"""Reporter class that renders report as an HTML document."""
-
 import os
 import json
 from fontbakery.reporters.html import HTMLReporter
@@ -7,15 +5,15 @@ from fontbakery.reporters.html import HTMLReporter
 PRODUCTION_JS = True
 
 
-class SpaHtmlReporter(HTMLReporter):
+class HtmlAppReporter(HTMLReporter):
     """
-    Renders a report as a Single Page Application HTML document.
+    Renders a report as an HTML and JavaScript Application.
     """
 
     def write(self):
         with open(self.output_file, "w", encoding="utf-8") as fh:
             fh.write(self.get_html())
-        print(f'A report in HTML format has been saved to "{self.output_file}"')
+        print(f'A report in HTML/JS App format has been saved to "{self.output_file}"')
 
     def getdoc(self):
         doc = super().getdoc()

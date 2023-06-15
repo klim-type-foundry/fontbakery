@@ -30,7 +30,7 @@ from fontbakery.reporters.serialize import SerializeReporter
 from fontbakery.reporters.badge import BadgeReporter
 from fontbakery.reporters.ghmarkdown import GHMarkdownReporter
 from fontbakery.reporters.html import HTMLReporter
-from fontbakery.reporters.html_spa import SpaHtmlReporter
+from fontbakery.reporters.html_spa import HtmlAppReporter
 from fontbakery.utils import get_theme
 
 
@@ -235,12 +235,12 @@ def ArgumentParser(profile, profile_arg=True):
     )
 
     argument_parser.add_argument(
-        "--html-spa",
+        "--html-app",
         default=False,
         action=AddReporterAction,
-        cls=SpaHtmlReporter,
+        cls=HtmlAppReporter,
         metavar="HTML_FILE",
-        help="Write a custom Singe Page Application HTML report to HTML_FILE.",
+        help="Write a custom HTML/JS App report to HTML_FILE.",
     )
 
     iterargs = sorted(profile.iterargs.keys())
