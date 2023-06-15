@@ -7,8 +7,10 @@ from fontbakery.reporters.html import HTMLReporter
 PRODUCTION_JS = True
 
 
-class KlimHtmlReporter(HTMLReporter):
-    """Renders a report as a HTML document."""
+class SpaHtmlReporter(HTMLReporter):
+    """
+    Renders a report as a Single Page Application HTML document.
+    """
 
     def write(self):
         with open(self.output_file, "w", encoding="utf-8") as fh:

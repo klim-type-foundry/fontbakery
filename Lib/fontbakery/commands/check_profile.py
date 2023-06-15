@@ -30,7 +30,7 @@ from fontbakery.reporters.serialize import SerializeReporter
 from fontbakery.reporters.badge import BadgeReporter
 from fontbakery.reporters.ghmarkdown import GHMarkdownReporter
 from fontbakery.reporters.html import HTMLReporter
-from fontbakery.reporters.html_klim import KlimHtmlReporter
+from fontbakery.reporters.html_spa import SpaHtmlReporter
 from fontbakery.utils import get_theme
 
 
@@ -235,12 +235,12 @@ def ArgumentParser(profile, profile_arg=True):
     )
 
     argument_parser.add_argument(
-        "--html-klim",
+        "--html-spa",
         default=False,
         action=AddReporterAction,
-        cls=KlimHtmlReporter,
-        metavar="KLIM_HTML_FILE",
-        help="Write a custom HTML report to HTML_FILE.",
+        cls=SpaHtmlReporter,
+        metavar="HTML_FILE",
+        help="Write a custom Singe Page Application HTML report to HTML_FILE.",
     )
 
     iterargs = sorted(profile.iterargs.keys())
