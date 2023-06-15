@@ -9,7 +9,7 @@ defineProps<{
 
 <template>
     <li
-        class="fontBakeryMessage"
+        class="fontBakeryMessage fontBakeryLogMessage"
         v-html="
             `${getFontBakeryStatusEmoji(logEntry.status)} ${formatFontBakeryMessage(
                 logEntry.message,
