@@ -1,0 +1,178 @@
+@import 'fonts.css';
+
+/* color palette */
+:root {
+  --theme-white: #ffffff;
+  --theme-white-soft: #f8f8f8;
+  --theme-white-mute: #f2f2f2;
+
+  --theme-black: #181818;
+  --theme-black-soft: #222222;
+  --theme-black-mute: #282828;
+
+  --theme-indigo: #2c3e50;
+  --theme-green: hsla(160, 100%, 37%, 1);
+  --theme-dark-green: hsla(160, 100%, 26%, 1);
+
+  --theme-divider-light-1: rgba(60, 60, 60, 0.29);
+  --theme-divider-light-2: rgba(60, 60, 60, 0.12);
+  --theme-divider-dark-1: rgba(84, 84, 84, 0.65);
+  --theme-divider-dark-2: rgba(84, 84, 84, 0.48);
+
+  --theme-text-light-1: var(--theme-indigo);
+  --theme-text-light-2: rgba(60, 60, 60, 0.66);
+  --theme-text-dark-1: var(--theme-white);
+  --theme-text-dark-2: rgba(235, 235, 235, 0.64);
+}
+
+/* semantic color variables for this project */
+:root {
+  --color-background: var(--theme-white);
+  --color-background-soft: var(--theme-white-soft);
+  --color-background-mute: var(--theme-white-mute);
+
+  --color-border: var(--theme-divider-light-2);
+  --color-border-hover: var(--theme-divider-light-1);
+
+  --color-heading: var(--theme-text-light-1);
+  --color-heading-1: var(--theme-green);
+  --color-text: var(--theme-text-light-1);
+  --color-text-secondary: var(--theme-text-light-2);
+
+  --color-link: var(--theme-green);
+  --color-link-hover: var(--theme-dark-green);
+
+  --color-hr: var(--theme-divider-light-1);
+
+  --color-nav-background: var(--theme-white-mute);
+
+  --section-gap: 160px;
+
+  --color-button-border: var(--color-text);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-background: var(--theme-black);
+    --color-background-soft: var(--theme-black-soft);
+    --color-background-mute: var(--theme-black-mute);
+
+    --color-border: var(--theme-divider-dark-2);
+    --color-border-hover: var(--theme-divider-dark-1);
+
+    --color-heading: var(--theme-text-dark-1);
+    --color-heading-1: var(--theme-green);
+    --color-text: var(--theme-text-dark-1);
+    --color-text-secondary: var(--theme-text-dark-2);
+
+    --color-link: var(--theme-dark-green);
+    --color-link-hover: var(--theme-green);
+
+    --color-hr: var(--theme-divider-dark-1);
+
+    --color-nav-background: var(--theme-black-mute);
+  }
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  font-weight: normal;
+}
+
+body {
+  min-height: 100%;
+  color: var(--color-text);
+  background: var(--color-background);
+  transition: color 0.5s, background-color 0.5s;
+  line-height: 1.6;
+  font-family: Soehne, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu,
+    Cantarell, 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  font-size: 16px;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3, h4, h5 {
+  color: var(--color-heading);
+}
+
+h1 {
+    font-weight: bold;
+    font-size: 2.6rem;
+    color: var(--color-heading-1);
+}
+
+h2 {
+    font-size: 2rem;
+}
+
+h3 {
+    font-weight: bold;
+    font-size: 1.5rem;
+}
+
+a {
+  text-decoration: none;
+  color: var(--color-link);
+  transition: 0.4s;
+}
+
+@media (hover: hover) {
+  a:hover {
+    color: var(--color-link-hover);
+  }
+}
+
+pre,
+code {
+  font-family: SoehneMono, monospace;
+}
+
+hr {
+  border: 0;
+  height: 0;
+  border-top: 1px solid var(--color-hr);
+  margin: 1rem 0;
+}
+
+details > summary {
+    font-family: SoehneIkon, sans-serif;
+    list-style-type: none;
+}
+
+details > summary::-webkit-details-marker {
+    display: none;
+}
+
+details > summary::before {
+    content: '▶ ';
+}
+
+details[open] > summary::before {
+    content: '▼ ';
+}
+
+button {
+  padding: 0.4rem 0.6rem;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+  background-color: transparent;
+  border: 1px solid var(--color-button-border);
+  vertical-align: middle;
+  cursor: pointer;
+  border-radius: 0.2rem;
+}
+
+button:hover {
+  color: var(--color-background);
+  background-color: var(--color-button-border);
+}
+
+label {
+  cursor: pointer;
+}

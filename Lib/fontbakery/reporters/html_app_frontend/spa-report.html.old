@@ -1,0 +1,79 @@
+<script src="https://cdn.tailwindcss.com?plugins=typography"></script>
+<script>
+    tailwind.config = {
+        darkMode: 'class',
+        theme: {
+            fontFamily: {
+                sans: ['Graphik', 'sans-serif'],
+            },
+        }
+    }
+</script>
+<script type="importmap">
+  {
+    "imports": {
+      "vue": "https://unpkg.com/vue@3/dist/vue.esm-browser.js"
+    }
+  }
+</script>
+
+<div id="app">
+    <h1 class="text-5xl">Font Bakery results {{count}}</h1>
+
+    <div v-for="section in checkData.sections">
+        <h2 class="text-3xl">{{ section.key[0] }}</h2>
+        <div v-for="check in section.checks">
+            <h3 class="text-2xl">{{ check.description }}</h3>
+            <h3 class="text-1xl">{{ check.filename }}</h3>
+        </div>
+    </div>
+
+    <pre>{{ checkData }}</pre>
+</div>
+
+<script type="module">
+  import {createApp} from 'vue';
+
+  // Whenever the user explicitly chooses light mode
+  // localStorage.theme = 'light'
+
+  // // Whenever the user explicitly chooses dark mode
+  // localStorage.theme = 'dark'
+
+  // Whenever the user explicitly chooses to respect the OS preference
+  // localStorage.removeItem('theme')
+
+  document.body.classList.add('bg-white', 'dark:bg-slate-900', 'text-slate-900', 'dark:text-white');
+
+  // On page load or when changing themes, best to add inline in `head` to avoid FOUC
+  if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+    document.documentElement.classList.add('dark')
+  } else {
+    document.documentElement.classList.remove('dark')
+  }
+
+  createApp({
+    data() {
+      return {
+        checkData,
+      }
+    }
+  }).mount('#app');
+</script>
+
+<script setup>
+import { ref, onMounted } from 'vue';
+
+// reactive state
+const count = ref(0)
+
+// functions that mutate state and trigger updates
+function increment() {
+  count.value++
+}
+
+// lifecycle hooks
+onMounted(() => {
+  console.log(`The initial count is ${count.value}.`)
+})
+</script>

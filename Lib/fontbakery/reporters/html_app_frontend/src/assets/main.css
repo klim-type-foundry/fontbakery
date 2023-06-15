@@ -1,0 +1,94 @@
+@import 'base.css';
+
+.ikon {
+  font-family: SoehneIkon, sans-serif;
+}
+
+main,
+nav {
+  padding: 2rem;
+  overflow-y: scroll;
+  height: 100vh;
+}
+
+.gridContainer,
+.backgroundContainer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: grid;
+  grid-template-columns: 62% 38%;
+  grid-column-gap: 0;
+  height: 100vh;
+  width: 100vw;
+}
+
+.gridContainer {
+  align-items: baseline;
+}
+
+.backgroundNav {
+  background-color: var(--color-nav-background);
+  height: 100vh;
+}
+
+.emo {
+  font-family: sans-serif;
+}
+
+.filename {
+  font-weight: bold;
+}
+
+.rationale {
+    color: var(--color-text-secondary);
+}
+
+.fontBakeryMessage {
+  white-space: pre;
+}
+
+.statusHidden {
+  opacity: 0.5;
+}
+
+.count {
+  font-feature-settings: 'tnum';
+  color: var(--color-text-secondary);
+}
+
+nav h3 {
+  line-height: 1;
+  margin-bottom: 0.5rem;
+}
+
+li.toggleSelection button {
+    margin-top: 0.5rem;
+}
+
+.filterContainer {
+  margin-bottom: 2rem;
+}
+
+ul.filterList {
+  list-style-type: none;
+  padding-left: 0;
+}
+
+ul.filterList li input {
+  margin-right: 0.2rem;
+}
+
+ul.filterList .resultStatuses {
+  /* Align the status list with the right of the checkbox */
+  margin-left: 1.2rem;
+}
+
+ul.sectionFilter label {
+  font-weight: bold;
+  margin-bottom: 0.5rem;
+}
+
+input[type='checkbox'] {
+  cursor: pointer;
+}
