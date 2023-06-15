@@ -38,6 +38,7 @@ interface FontBakerySection {
 }
 
 interface FontBakeryData {
+    datetime: string;
     outputFile: string;
     result: FontBakeryResultStatuses;
     sections: FontBakerySection[];

@@ -1,4 +1,5 @@
-const data: Pick<FontBakeryData, 'result' | 'sections' | 'outputFile'> = {
+const data: Pick<FontBakeryData, 'result' | 'sections' | 'outputFile' | 'datetime'> = {
+    datetime: '2023-06-15 12:30:18.767845',
     outputFile: 'reports/ufo-report.html',
     result: { ERROR: 10, FAIL: 2, PASS: 56, WARN: 12 },
     sections: [

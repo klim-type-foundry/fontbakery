@@ -89,6 +89,8 @@ ul.sectionFilter label {
   margin-bottom: 0.5rem;
 }
 
-input[type='checkbox'] {
-  cursor: pointer;
+.reportDateTime {
+  color: var(--color-text-secondary);
 }
+
+

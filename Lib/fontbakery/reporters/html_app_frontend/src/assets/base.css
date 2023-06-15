@@ -127,6 +127,10 @@ a {
   }
 }
 
+input[type='checkbox'] {
+  cursor: pointer;
+}
+
 pre,
 code {
   font-family: SoehneMono, monospace;
