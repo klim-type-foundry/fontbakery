@@ -18,7 +18,7 @@ class HtmlAppReporter(HTMLReporter):
 
     def getdoc(self):
         doc = super().getdoc()
-        doc["datetime"] = datetime.now()
+        doc["datetime"] = datetime.now().strftime("%Y-%m-%dT%H:%M:%S.%f%z")
         doc["outputFile"] = self.output_file
         return doc
 
