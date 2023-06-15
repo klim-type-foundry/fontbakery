@@ -9,7 +9,6 @@ import FontBakeryChecks from '@/components/FontBakeryChecks.vue';
 import getFontTypeFromFilePath from '@/utils/getFontTypeFromFilePath';
 import formatOutputFileToTitle from '@/utils/formatOutputFileToTitle';
 import formatIsoDateTime from '@/utils/formatIsoDateTime';
-import { IkonType } from '../Settings';
 
 const fontBakeryDataStore = useFontBakeryData();
 const {
@@ -24,13 +23,13 @@ const filteredSections = computed(() => {
         fontBakeryFilters.value.sectionKey.includes(section.key[0]),
     );
 });
+const formattedDate = computed(() => formatIsoDateTime(reportDateTime.value));
 </script>
 
 <template>
     <h1>{{ formatOutputFileToTitle(outputFile) }}</h1>
-    <div class="reportDateTime">
-        <span class="ikon">{{ IkonType.BUILD_TIME }}</span> Report generated
-        {{ formatIsoDateTime(reportDateTime) }}
+    <div class="reportDateTime" :title="`Report generated ${formattedDate}`">
+        Generated {{ formattedDate }}
     </div>
     <template v-for="fontBakerySection in filteredSections" :key="fontBakerySection.key">
         <h2 :id="formatHtmlIdFromFontBakeryKey(fontBakerySection.key)">

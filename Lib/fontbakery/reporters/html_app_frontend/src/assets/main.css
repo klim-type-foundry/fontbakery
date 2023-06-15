@@ -90,6 +90,7 @@ ul.sectionFilter label {
 }
 
 .reportDateTime {
+  font-style: italic;
   color: var(--color-text-secondary);
 }
 
