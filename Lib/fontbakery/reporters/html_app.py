@@ -1,5 +1,6 @@
 import os
 import json
+from datetime import datetime
 from fontbakery.reporters.html import HTMLReporter
 
 PRODUCTION_JS = True
@@ -17,6 +18,7 @@ class HtmlAppReporter(HTMLReporter):
 
     def getdoc(self):
         doc = super().getdoc()
+        doc["datetime"] = str(datetime.now())
         doc["outputFile"] = self.output_file
         return doc
 
