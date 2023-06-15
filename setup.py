@@ -83,7 +83,13 @@ setup(
         "fontbakery.profiles",
         "fontbakery.commands",
     ],
-    package_data={"fontbakery": ["data/*.cache", "data/googlefonts/*_exceptions.txt"]},
+    package_data={
+        "fontbakery": [
+            "data/*.cache",
+            "data/googlefonts/*_exceptions.txt",
+            "reporters/html_app_frontend/dist/index.html",
+        ]
+    },
     classifiers=[
         "Environment :: Console",
         "Intended Audience :: Developers",

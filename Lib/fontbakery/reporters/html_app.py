@@ -23,7 +23,8 @@ class HtmlAppReporter(HTMLReporter):
     def get_html(self) -> str:
         html_path = os.path.join(
             os.path.dirname(os.path.dirname(__file__)),
-            "frontend_spa_report",
+            "reporters",
+            "html_app_frontend",
             "dist",
             "index.html",
         )

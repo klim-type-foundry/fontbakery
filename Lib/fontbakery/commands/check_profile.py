@@ -30,7 +30,7 @@ from fontbakery.reporters.serialize import SerializeReporter
 from fontbakery.reporters.badge import BadgeReporter
 from fontbakery.reporters.ghmarkdown import GHMarkdownReporter
 from fontbakery.reporters.html import HTMLReporter
-from fontbakery.reporters.html_spa import HtmlAppReporter
+from fontbakery.reporters.html_app import HtmlAppReporter
 from fontbakery.utils import get_theme
 
 
