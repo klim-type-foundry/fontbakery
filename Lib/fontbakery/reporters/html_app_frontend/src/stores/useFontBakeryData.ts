@@ -49,11 +49,13 @@ export const useFontBakeryData = defineStore('fontBakeryData', {
             this.filters.fontType = fontTypes;
         },
         fetchFontBakeryData() {
+            console.log('FSDFDSFDSFDSFDSF', import.meta.env);
             if (import.meta.env.DEV) {
                 // In development, load the imported test data
                 this.result = devFontBakeryData.result;
                 this.sections = devFontBakeryData.sections;
                 this.outputFile = devFontBakeryData.outputFile;
+                console.log('DFSLKFDKSFLDKSFLDSK', devFontBakeryData.datetime);
                 this.datetime = devFontBakeryData.datetime;
             } else {
                 // Check whether we've already fetched the data

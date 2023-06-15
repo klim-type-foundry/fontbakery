@@ -1,5 +1,5 @@
 const data: Pick<FontBakeryData, 'result' | 'sections' | 'outputFile' | 'datetime'> = {
-    datetime: '2023-06-15 12:30:18.767845',
+    datetime: '2023-06-15T12:45:47.758718',
     outputFile: 'reports/design-report.html',
     result: { FAIL: 105, PASS: 244, SKIP: 154, WARN: 253 },
     sections: [
