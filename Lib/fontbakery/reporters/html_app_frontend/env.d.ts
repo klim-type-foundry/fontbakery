@@ -50,9 +50,3 @@ interface FontBakeryData {
         fontType: FontBakeryFontType[];
     };
 }
-
-declare global {
-    interface Window {
-        fontBakeryData: FontBakeryData;
-    }
-}

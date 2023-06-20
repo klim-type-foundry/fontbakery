@@ -63,13 +63,9 @@ export const useFontBakeryData = defineStore('fontBakeryData', {
                     return;
                 }
                 // In production, load from the window object (as set by Font Bakery's build process)
-                // @ts-ignore TODO: fix window.fontBakeryData TS
                 this.result = window.fontBakeryData.result;
-                // @ts-ignore TODO: fix window.fontBakeryData TS
                 this.sections = window.fontBakeryData.sections;
-                // @ts-ignore TODO: fix window.fontBakeryData TS
                 this.outputFile = window.fontBakeryData.outputFile;
-                // @ts-ignore TODO: fix window.fontBakeryData TS
                 this.datetime = window.fontBakeryData.datetime;
             }
             // // Sort all the result statuses
