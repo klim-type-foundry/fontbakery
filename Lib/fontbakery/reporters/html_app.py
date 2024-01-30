@@ -20,6 +20,7 @@ class HtmlAppReporter(HTMLReporter):
         doc = super().getdoc()
         doc["datetime"] = datetime.now().strftime("%Y-%m-%dT%H:%M:%S.%f%z")
         doc["outputFile"] = self.output_file
+        print(doc)
         return doc
 
     def get_html(self) -> str:
