@@ -12,7 +12,7 @@ defineProps<{
         class="fontBakeryMessage fontBakeryLogMessage"
         v-html="
             `${getFontBakeryStatusEmoji(logEntry.status)} ${formatFontBakeryMessage(
-                logEntry.message,
+                logEntry.message.message,
             )}`
         "
     />
