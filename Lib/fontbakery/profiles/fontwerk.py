@@ -14,7 +14,7 @@ profile_imports = ("fontbakery.profiles.googlefonts",)
 profile = profile_factory(default_section=Section("Fontwerk"))
 
 # FIXME: It would be much better to refactor this as described at:
-#        https://github.com/googlefonts/fontbakery/issues/3585
+#        https://github.com/fonttools/fontbakery/issues/3585
 profile.configuration_defaults = {
     "com.google.fonts/check/file_size": {
         "WARN_SIZE": 1 * 1024 * 1024,
@@ -39,6 +39,8 @@ def leave_this_one_out(checkid):
         "com.google.fonts/check/version_bump",
         "com.google.fonts/check/production_glyphs_similarity",
         "com.google.fonts/check/name/line_breaks",
+        "com.google.fonts/check/fontdata_namecheck",
+        "com.google.fonts/check/meta/script_lang_tags",
         # The following check they may need some improvements
         # before we decide to include it:
         "com.google.fonts/check/family/italics_have_roman_counterparts",
@@ -91,7 +93,7 @@ def com_fontwerk_check_name_no_mac_entries(ttFont):
     rationale="""
         Vendor ID must be WERK for Fontwerk fonts.
     """,
-    proposal="https://github.com/googlefonts/fontbakery/pull/3579",
+    proposal="https://github.com/fonttools/fontbakery/pull/3579",
 )
 def com_fontwerk_check_vendor_id(ttFont):
     """Checking OS/2 achVendID."""
@@ -175,7 +177,7 @@ def is_covered_in_stat(ttFont, axis_tag, value):
         and STAT table. Inconsistencies may cause issues in apps like Adobe InDesign.
     """,
     conditions=["is_variable_font"],
-    proposal="https://github.com/googlefonts/fontbakery/pull/3636",
+    proposal="https://github.com/fonttools/fontbakery/pull/3636",
 )
 def com_fontwerk_check_inconsistencies_between_fvar_stat(ttFont):
     """Checking if STAT entries matches fvar and vice versa."""

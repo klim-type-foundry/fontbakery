@@ -1,31 +1,30 @@
-from fontbakery.fonts_profile import (  # NOQA pylint: disable=unused-import
-    profile_factory,
-)
+from fontbakery.fonts_profile import profile_factory
 from fontbakery.section import Section
 
-OPENTYPE_PROFILE_IMPORTS = (
-    ".",
+profile_imports = (
     (
-        "cff",
-        "cmap",
-        "head",
-        "os2",
-        "post",
-        "name",
-        "loca",
-        "hhea",
-        "dsig",
-        "gdef",
-        "gpos",
-        "kern",
-        "glyf",
-        "fvar",
-        "stat",
-        "layout",
-        "shared_conditions",
+        ".",
+        (
+            "cff",
+            "cmap",
+            "head",
+            "os2",
+            "post",
+            "name",
+            "loca",
+            "hhea",
+            "dsig",
+            "gdef",
+            "gpos",
+            "kern",
+            "glyf",
+            "fvar",
+            "stat",
+            "layout",
+            "shared_conditions",
+        ),
     ),
 )
-profile_imports = (OPENTYPE_PROFILE_IMPORTS,)
 profile = profile_factory(default_section=Section("OpenType Specification Checks"))
 
 OPENTYPE_PROFILE_CHECKS = [
@@ -47,8 +46,8 @@ OPENTYPE_PROFILE_CHECKS = [
     "com.google.fonts/check/varfont/regular_slnt_coord",
     "com.google.fonts/check/varfont/regular_ital_coord",
     "com.google.fonts/check/varfont/regular_opsz_coord",
-    "com.google.fonts/check/varfont/bold_wght_coord",
     "com.google.fonts/check/varfont/slnt_range",
+    "com.typenetwork/check/varfont/ital_range",
     "com.google.fonts/check/varfont/wght_valid_range",
     "com.google.fonts/check/varfont/wdth_valid_range",
     "com.google.fonts/check/varfont/stat_axis_record_for_each_axis",
@@ -71,6 +70,7 @@ OPENTYPE_PROFILE_CHECKS = [
     "com.google.fonts/check/glyf_unused_data",
     "com.google.fonts/check/family_naming_recommendations",
     "com.google.fonts/check/maxadvancewidth",
+    "com.adobe.fonts/check/postscript_name",
     "com.google.fonts/check/points_out_of_bounds",
     "com.google.fonts/check/glyf_non_transformed_duplicate_components",
     "com.google.fonts/check/code_pages",

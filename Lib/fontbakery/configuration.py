@@ -10,6 +10,7 @@ class Configuration(dict):
             "explicit_checks",
             "exclude_checks",
             "full_lists",
+            "skip_network",
         ]:
             if required_arg not in self:
                 self[required_arg] = None
@@ -20,7 +21,7 @@ class Configuration(dict):
             config = toml.load(filename)
         except toml.TomlDecodeError:
             # Try yaml
-            config = yaml.safe_load(open(filename))
+            config = yaml.safe_load(open(filename, encoding="utf-8"))
         if not isinstance(config, dict):
             raise Exception(f"Can't understand config file {filename}.")
         return cls(**config)

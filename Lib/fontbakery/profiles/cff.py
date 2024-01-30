@@ -3,11 +3,9 @@ from fontbakery.status import FAIL, PASS, WARN
 from fontbakery.message import Message
 
 # used to inform get_module_profile whether and how to create a profile
-from fontbakery.fonts_profile import (
-    profile_factory,  # NOQA pylint: disable=unused-import
-)
+from fontbakery.fonts_profile import profile_factory  # noqa:F401 pylint:disable=W0611
 
-profile_imports = [(".shared_conditions", ("is_cff", "is_cff2"))]
+profile_imports = ((".", ("shared_conditions",)),)
 
 
 class CFFAnalysis:
@@ -85,7 +83,7 @@ def _analyze_cff(analysis, top_dict, private_dict, fd_index=0):
         except RecursionError:
             analysis.glyphs_recursion_errors.append(glyph_name)
             continue
-        info = dict()
+        info = {}
         info["subrs"] = subrs
         info["global_subrs"] = global_subrs
         info["gsubr_bias"] = gsubr_bias
@@ -147,7 +145,7 @@ def cff_analysis(ttFont):
         Per "The Type 2 Charstring Format, Technical Note #5177",
         the "Subr nesting, stack limit" is 10.
     """,
-    proposal="https://github.com/googlefonts/fontbakery/pull/2425",
+    proposal="https://github.com/fonttools/fontbakery/pull/2425",
 )
 def com_adobe_fonts_check_cff_call_depth(cff_analysis):
     """Is the CFF subr/gsubr call depth > 10?"""
@@ -176,7 +174,7 @@ def com_adobe_fonts_check_cff_call_depth(cff_analysis):
     rationale="""
         Per "The CFF2 CharString Format", the "Subr nesting, stack limit" is 10.
     """,
-    proposal="https://github.com/googlefonts/fontbakery/pull/2425",
+    proposal="https://github.com/fonttools/fontbakery/pull/2425",
 )
 def com_adobe_fonts_check_cff2_call_depth(cff_analysis):
     """Is the CFF2 subr/gsubr call depth > 10?"""
@@ -210,7 +208,7 @@ def com_adobe_fonts_check_cff2_call_depth(cff_analysis):
         makes use of this operation. The check treats that usage as a FAIL.
         There are no known ill effects of using dotsection, so that check is a WARN.
     """,
-    proposal="https://github.com/googlefonts/fontbakery/pull/3033",
+    proposal="https://github.com/fonttools/fontbakery/pull/3033",
 )
 def com_adobe_fonts_check_cff_deprecated_operators(cff_analysis):
     """Does the font use deprecated CFF operators or operations?"""

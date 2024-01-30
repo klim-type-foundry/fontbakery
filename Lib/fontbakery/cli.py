@@ -5,6 +5,7 @@ import signal
 import sys
 from importlib import import_module
 
+from fontbakery import __version__
 import fontbakery.commands
 from fontbakery.commands.check_profile import main as check_profile_main
 
@@ -17,6 +18,8 @@ CLI_PROFILES = [
     "iso15008",
     "notofonts",
     "opentype",
+    "shaping",
+    "typenetwork",
     "ufo_sources",
     "universal",
     "proposals",
@@ -24,6 +27,9 @@ CLI_PROFILES = [
 
 
 def run_profile_check(profilename):
+    from fontbakery.utils import set_profile_name
+
+    set_profile_name(profilename)
     module = import_module(f"fontbakery.profiles.{profilename}")
     sys.exit(check_profile_main(module.profile))
 
@@ -59,12 +65,14 @@ def main():
             )
     else:
         description = (
-            "Run fontbakery subcommands. Subcommands have their own help "
-            "messages. These are usually accessible with the -h/--help flag "
-            "positioned after the subcommand, i.e.: fontbakery subcommand -h"
+            "Run fontbakery subcommands. Subcommands have their own help messages;\n"
+            "to view them add the '-h' (or '--help') option after the subcommand,\n"
+            "like in this example:\n    fontbakery universal -h"
         )
 
-        parser = argparse.ArgumentParser(description=description)
+        parser = argparse.ArgumentParser(
+            formatter_class=argparse.RawTextHelpFormatter, description=description
+        )
         parser.add_argument(
             "subcommand",
             help="The subcommand to execute",
@@ -74,13 +82,9 @@ def main():
         parser.add_argument(
             "--list-subcommands",
             action="store_true",
-            help="print the list of subcommands "
-            "to stdout, separated by a space character. This is "
-            "usually only used to generate the shell completion code.",
+            help="print list of supported subcommands",
         )
-        parser.add_argument(
-            "--version", action="version", version=fontbakery.__version__
-        )
+        parser.add_argument("--version", action="version", version=__version__)
         args = parser.parse_args()
 
         if args.list_subcommands:

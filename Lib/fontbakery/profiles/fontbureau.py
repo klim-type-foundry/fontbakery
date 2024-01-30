@@ -4,7 +4,7 @@ Checks for Font Bureau.
 
 from fontbakery.callable import check
 from fontbakery.section import Section
-from fontbakery.status import PASS, FAIL, WARN
+from fontbakery.status import PASS, FAIL
 from fontbakery.fonts_profile import profile_factory
 from fontbakery.message import Message
 from fontbakery.profiles.universal import UNIVERSAL_PROFILE_CHECKS
@@ -23,7 +23,7 @@ FONTBUREAU_PROFILE_CHECKS = UNIVERSAL_PROFILE_CHECKS + [
         This check follows the values of the ytlc axis proposed by Font Bureau.
     """,
     conditions=["is_variable_font"],
-    proposal="https://github.com/googlefonts/fontbakery/issues/3130",
+    proposal="https://github.com/fonttools/fontbakery/issues/3130",
 )
 def io_github_abysstypeco_check_ytlc_sanity(ttFont):
     """Check if ytlc values are sane in vf"""

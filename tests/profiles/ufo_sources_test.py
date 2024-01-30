@@ -1,12 +1,16 @@
 import os
+import sys
 
 import defcon
 import pytest
 
-from fontbakery.checkrunner import FAIL, SKIP, WARN
+from conftest import ImportRaiser, remove_import_raiser
+
+from fontbakery.status import FAIL, SKIP, WARN
 from fontbakery.codetesting import (
     assert_PASS,
     assert_results_contain,
+    assert_SKIP,
     CheckTester,
     TEST_FILE,
 )
@@ -20,6 +24,21 @@ def empty_ufo_font(tmpdir):
     ufo_path = str(tmpdir.join("empty_font.ufo"))
     ufo.save(ufo_path)
     return (ufo, ufo_path)
+
+
+def test_extra_needed_exit(monkeypatch):
+    module_name = "defcon"
+    sys.meta_path.insert(0, ImportRaiser(module_name))
+    monkeypatch.delitem(sys.modules, module_name, raising=False)
+
+    ufo_path = TEST_FILE("test.ufo")
+    with pytest.raises(SystemExit):
+        check = CheckTester(
+            ufo_sources_profile, "com.daltonmaag/check/ufo_required_fields"
+        )
+        check(ufo_path)
+
+    remove_import_raiser(module_name)
 
 
 def test_check_ufolint(empty_ufo_font):
@@ -59,7 +78,7 @@ def test_check_required_fields(empty_ufo_font):
     # Run the check on a non-UFO font.
     font = TEST_FILE("source-sans-pro/OTF/SourceSansPro-Regular.otf")
     msg = assert_results_contain(check(font), SKIP, "unfulfilled-conditions")
-    assert msg == "Unfulfilled Conditions: ufo_font"
+    assert "Unfulfilled Conditions: ufo_font" in msg.message
 
 
 def test_check_recommended_fields(empty_ufo_font):
@@ -85,7 +104,7 @@ def test_check_recommended_fields(empty_ufo_font):
     # Run the check on a non-UFO font.
     font = TEST_FILE("source-sans-pro/OTF/SourceSansPro-Regular.otf")
     msg = assert_results_contain(check(font), SKIP, "unfulfilled-conditions")
-    assert msg == "Unfulfilled Conditions: ufo_font"
+    assert "Unfulfilled Conditions: ufo_font" in msg.message
 
 
 def test_check_unnecessary_fields(empty_ufo_font):
@@ -108,4 +127,124 @@ def test_check_unnecessary_fields(empty_ufo_font):
     # Run the check on a non-UFO font.
     font = TEST_FILE("source-sans-pro/OTF/SourceSansPro-Regular.otf")
     msg = assert_results_contain(check(font), SKIP, "unfulfilled-conditions")
-    assert msg == "Unfulfilled Conditions: ufo_font"
+    assert "Unfulfilled Conditions: ufo_font" in msg.message
+
+
+def test_check_designspace_has_sources():
+    """See if we can actually load the source files."""
+    check = CheckTester(
+        ufo_sources_profile, "com.google.fonts/check/designspace_has_sources"
+    )
+
+    designspace = TEST_FILE("stupidfont/Stupid Font.designspace")
+    assert_PASS(check(designspace))
+
+    # TODO: FAIL, 'no-sources'
+
+
+def test_check_designspace_has_default_master():
+    """Ensure a default master is defined."""
+    check = CheckTester(
+        ufo_sources_profile, "com.google.fonts/check/designspace_has_default_master"
+    )
+
+    designspace = TEST_FILE("stupidfont/Stupid Font.designspace")
+    assert_PASS(check(designspace))
+
+    # TODO: FAIL, 'not-found'
+
+
+def test_check_designspace_has_consistent_glyphset():
+    """Check consistency of glyphset in a designspace file."""
+    check = CheckTester(
+        ufo_sources_profile,
+        "com.google.fonts/check/designspace_has_consistent_glyphset",
+    )
+
+    designspace = TEST_FILE("stupidfont/Stupid Font.designspace")
+    assert_results_contain(check(designspace), FAIL, "inconsistent-glyphset")
+
+    # TODO: Fix it and ensure it passes the check
+
+
+def test_check_designspace_has_consistent_codepoints():
+    """Check codepoints consistency in a designspace file."""
+    check = CheckTester(
+        ufo_sources_profile,
+        "com.google.fonts/check/designspace_has_consistent_codepoints",
+    )
+
+    designspace = TEST_FILE("stupidfont/Stupid Font.designspace")
+    assert_results_contain(check(designspace), FAIL, "inconsistent-codepoints")
+
+    # TODO: Fix it and ensure it passes the check
+
+
+def test_check_default_languagesystem_pass_without_features(empty_ufo_font):
+    """Pass if the UFO source has no features."""
+    check = CheckTester(
+        ufo_sources_profile, "com.thetypefounders/check/features_default_languagesystem"
+    )
+
+    ufo, _ = empty_ufo_font
+
+    assert_SKIP(check(ufo), "No features.fea file in font.")
+
+
+def test_check_default_languagesystem_pass_with_empty_features(empty_ufo_font):
+    """Pass if the UFO source has a feature file but it is empty."""
+    check = CheckTester(
+        ufo_sources_profile, "com.thetypefounders/check/features_default_languagesystem"
+    )
+
+    ufo, _ = empty_ufo_font
+
+    ufo.features.text = ""
+
+    assert_PASS(check(ufo))
+
+
+def test_check_default_languagesystem_pass_with_features(empty_ufo_font):
+    """Pass if the font has features and no default languagesystem statements."""
+    check = CheckTester(
+        ufo_sources_profile, "com.thetypefounders/check/features_default_languagesystem"
+    )
+
+    ufo, _ = empty_ufo_font
+
+    ufo.features.text = "feature liga { sub f i by f_i; } liga;"
+
+    assert_PASS(check(ufo))
+
+
+def test_check_default_languagesystem_warn_without_default_languagesystem(
+    empty_ufo_font,
+):
+    """Warn if `languagesystem DFLT dflt` is not present in the feature file,
+    but other languagesystem statements are."""
+    check = CheckTester(
+        ufo_sources_profile, "com.thetypefounders/check/features_default_languagesystem"
+    )
+
+    ufo, _ = empty_ufo_font
+
+    ufo.features.text = (
+        "languagesystem latn dflt; feature liga { sub f i by f_i; } liga;"
+    )
+
+    assert_results_contain(check(ufo), WARN, "default-languagesystem")
+
+
+def test_check_default_languagesystem_pass_with_default_languagesystem(empty_ufo_font):
+    """Pass if `languagesystem DFLT dflt` is explicitly used in the features."""
+    check = CheckTester(
+        ufo_sources_profile, "com.thetypefounders/check/features_default_languagesystem"
+    )
+
+    ufo, _ = empty_ufo_font
+
+    ufo.features.text = """languagesystem DFLT dflt;
+languagesystem latn dflt;
+feature liga { sub f i by f_i; } liga;"""
+
+    assert_PASS(check(ufo))

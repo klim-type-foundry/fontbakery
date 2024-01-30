@@ -13,9 +13,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+import types
+
 import defcon
 
-from fontbakery.checkrunner import CheckRunner, PASS, DEBUG, ERROR, SKIP
+from fontbakery.checkrunner import CheckRunner
+from fontbakery.status import PASS, DEBUG, ERROR, SKIP
 from fontbakery.configuration import Configuration
 from fontbakery.message import Message
 from fontbakery.profile import Profile, get_module_profile
@@ -57,6 +60,7 @@ class CheckTester:
         self.check_section = None
         self.check = None
         self.check_iterargs = None
+        self.runner = None
         self._args = None
 
     def _get_args(self, condition_overrides=None):
@@ -64,7 +68,8 @@ class CheckTester:
             for name_key, value in condition_overrides.items():
                 if isinstance(name_key, str):
                     # this is a simplified form of a cache key:
-                    # write the conditions directly to the iterargs of the check identity
+                    # write the conditions directly to the iterargs
+                    # of the check identity
                     used_iterargs = self.runner._filter_condition_used_iterargs(
                         name_key, self.check_iterargs
                     )
@@ -73,8 +78,11 @@ class CheckTester:
                     # Full control for the caller, who has to inspect how
                     # the desired key needs to be set up.
                     key = name_key
-                #                                      error, value
-                self.runner._cache["conditions"][key] = None, value
+
+                self.runner._cache["conditions"][key] = (
+                    None,  # error
+                    value,  # value
+                )  # pytype:disable=unsupported-operands
         args = self.runner._get_args(self.check, self.check_iterargs)
         # args that are derived iterables are generators that must be
         # converted to lists, otherwise we end up with exhausted
@@ -95,7 +103,7 @@ class CheckTester:
         if key in self.runner._cache["conditions"]:
             return self.runner._cache["conditions"][key][1]
 
-    def __call__(self, values, condition_overrides={}):
+    def __call__(self, values, condition_overrides=None):
         from fontTools.ttLib import TTFont
         from fontbakery.profiles.googlefonts_conditions import family_metadata
         from glyphsLib import GSFont
@@ -159,11 +167,12 @@ class CheckTester:
             Configuration(explicit_checks=[self.check_id], full_lists=True),
         )
         for check_identity in self.runner.order:
-            _, check, _ = check_identity
-            if check.id != self.check_id:
+            if check_identity.check.id != self.check_id:
                 continue
             self.check_identity = check_identity
-            self.check_section, self.check, self.check_iterargs = check_identity
+            self.check_section = check_identity.section
+            self.check = check_identity.check
+            self.check_iterargs = check_identity.iterargs
             break
         if self.check_identity is None:
             raise KeyError(f'Check with id "{self.check_id}" not found.')
@@ -171,14 +180,22 @@ class CheckTester:
         self._args = self._get_args(condition_overrides)
 
         # Verify if the check's 'conditions' are met.
-        skipped, _ = self.runner._get_check_dependencies(
-            self.check, self.check_iterargs
-        )
+        skipped, _ = self.runner._get_check_dependencies(check_identity)
         if skipped is not None:
-            status, msg_str = skipped
+            status, msg_str = skipped.status, skipped.message
             return [(status, Message("unfulfilled-conditions", msg_str))]
         else:
-            return list(self.runner._exec_check(self.check, self._args))
+            # No "try" while testing, we want to know about exceptions
+            if self.check.configs:
+                new_globals = {
+                    varname: self.runner.config.get(self.check.id, {}).get(varname)
+                    for varname in self.check.configs
+                }
+                self.check.inject_globals(new_globals)
+            result = self.check(**self._args)
+            if not isinstance(result, types.GeneratorType):
+                result = [result]
+            return list(result)
 
 
 def portable_path(p):
@@ -195,7 +212,7 @@ def GLYPHSAPP_TEST_FILE(f):
     import glyphsLib
 
     the_file = portable_path(f"{PATH_TEST_DATA_GLYPHS_FILES}{f}")
-    return glyphsLib.load(open(the_file))
+    return glyphsLib.load(open(the_file, encoding="utf-8"))
 
 
 def assert_PASS(check_results, reason="with a good font...", ignore_error=None):

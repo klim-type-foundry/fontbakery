@@ -24,8 +24,8 @@ class Status:
         instance = cls.__instances.get(name, None)
         if instance is None:
             instance = cls.__instances[name] = super(Status, cls).__new__(cls)
-            setattr(instance, "_Status__name", name)
-            setattr(instance, "_Status__weight", weight)
+            instance.__name = name
+            instance.__weight = weight
         return instance
 
     __instances = {}
@@ -76,7 +76,7 @@ class Status:
 #
 # From all the statuses that can occur within a check, the "worst" one
 # is defining for the check overall status:
-# ERROR > FAIL > WARN > INFO > SKIP > PASS > DEBUG
+# ERROR > FATAL > FAIL > WARN > INFO > SKIP > PASS > DEBUG
 # Anything from WARN to PASS does not make a check fail.
 # A result < PASS creates an ERROR. That means, DEBUG is not a valid
 # result of a check, nor is any of the structuring statuses.
@@ -95,29 +95,8 @@ WARN = Status(
     "WARN", 4
 )  # A check that results in WARN may indicate a problem, but also may be OK.
 FAIL = Status("FAIL", 5)  # A FAIL is a problem detected in the font or family.
+FATAL = Status("FATAL", 6)  # A FATAL is an extremely severe problem,
+# which must be addressed immediately!
 ERROR = Status(
-    "ERROR", 6
+    "ERROR", 7
 )  # Something a programmer must fix. It will make a check fail as well.
-
-# Start of the suite of checks. Must be always the first message, even in async mode.
-# Message is the full execution order of the whole profile
-START = Status("START", -6)
-# Only between START and before the first SECTIONSUMMARY and END
-# Message is None.
-STARTCHECK = Status("STARTCHECK", -2)
-# Ends the last check started by STARTCHECK.
-# Message the the result status of the whole check, one of PASS, SKIP, FAIL, ERROR.
-ENDCHECK = Status("ENDCHECK", -1)
-# After the last ENDCHECK one SECTIONSUMMARY for each section before END.
-# Message is a tuple of:
-#   * the actual execution order of the section in the check runner session
-#     as reported. Especially in async mode, the order can differ significantly
-#     from the actual order of checks in the session.
-#   * a Counter dictionary where the keys are Status.name of
-#     the ENDCHECK message. If serialized, some existing statuses may not be
-#     in the counter because they never occurred in the section.
-SECTIONSUMMARY = Status("SECTIONSUMMARY", -3)
-# End of the suite of checks. Must be always the last message, even in async mode.
-# Message is a counter as described in SECTIONSUMMARY, but with the collected
-# results of all checks in all sections.
-END = Status("END", -5)

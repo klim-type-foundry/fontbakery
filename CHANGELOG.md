@@ -1,15 +1,315 @@
-Below are the most important changes from each release.
+Below are the noteworthy changes from each release.
 A more detailed list of changes is available in the corresponding milestones for each release in the Github issue tracker (https://github.com/googlefonts/fontbakery/milestones?state=closed).
 
+## Upcoming release: 0.10.10 (2024-Jan-??)
+### Noteworthy code-changes
+  - The babelfont dependency has been dropped. (PR #4416)
+  - Fix a crash when no matching checks are found during a multi-processing run. Also, do not freeze indefinitely. Instead, terminate the program emitting a process error code -1 and giving the user some guidance. (issue #4420)
+  - Reporters have been refactored; there may be some changes to the terminal display, particularly when --succinct is passed. (PR #4447)
 
-## Upcoming release: 0.9.0 (2023-Jun-??)
+### Migration of checks
+#### Moved to the Google Fonts profile
+  - **[com.google.fonts/check/varfont/bold_wght_coord]:** from the Open Type profile. (issue #4436)
+
+### Changes to existing checks
+#### On the Universal Profile
+  - **[com.google.fonts/check/arabic_spacing_symbols]:** Also check U+FBC2 ARABIC SYMBOL WASLA ABOVE (issue #4417)
+
+#### On the OpenType Profile
+  - **[com.google.fonts/check/varfont/bold_wght_coord]:** Only check for a bold instance on fonts where the weight range extends to 700. (issue #4373)
+  - **[com.google.fonts/check/license/OFL_body_text]:** yield WARN instead of FAIL if body text is incorrect since the Google Fonts backend will make its own license file. Also show which lines needing changing (PR #4437)
+  - **[com.google.fonts/check/name/license]:** yield WARN if license url is scripts.sil.org/OFL (PR #4437)
+
+#### On the Shaping Profile
+  - **[com.google.fonts/check/dotted_circle]:** Don't check for dotted circles in Hangul fonts. Hangul is not a syllabic script. Old Hangeul uses complex shaping and has diacritic marks that require dotted circles. Contemporary Hangeul does not. (related to issue #3600)
+  - **[com.google.fonts/check/soft_dotted]:** Check requires internet access. (issue #4396)
+
+#### On the Google Fonts Profile
+  - **[com.google.fonts/check/varfont/duplexed_axis_reflow]:** yield FAILs per incorrect axis (message codes specifying axis); sort the list of bad glyphs (PR #4400)
+  - **[com.google.fonts/check/legacy_accents]:** We changed our minds here, and removed the overide to FAIL on "legacy-accents-component", so it is back a mere WARN again, just like in the Universal Profile (issue #4425)
+  - **[com.google.fonts/check/font_copyright]:** Accept date ranges. (issue #4386)
+  - **[com.google.fonts/check/metadata/unsupported_subsets]** and **[com.google.fonts/check/metadata/unreachable_subsetting]**: Updated to use the new `gfsubsets` package. (PR #4434)
+  - **[com.google.fonts/check/glyphsets/shape_languages]:** Check requires internet access. (issue #4396)
+  - **[com.google.fonts/check/name/family_and_style_max_length]:** Updated max length requirements according to feedback from @vv-monsalve and improved description of problems to inform the users. Entries longer than 32 chars now emmit a FAIL. (issue #2179)
+
+
+## 0.10.9 (2024-Jan-12)
+  - New command-line flag `--skip-network` to skip any checks which require Internet access. (PR #4387)
+  - Fix number of log level stats colums displayed with --ghmarkdown (PR #4390)
+  - Code tests no longer catch exceptions and instead display backtraces. (PR #4392)
+
+### New checks
+#### Added to the OpenType Profile
+  - **EXPERIMENTAL - [com.typenetwork/check/varfont/ital_range]:** Check variable font ital axis has correct range. (PR #4402)
+
+### Changes to existing checks
+#### On the Shaping profile
+- **[com.google.fonts/check/shaping/regression]:** Font variations can now be set in the test configuration, similar to font features. (PR #4405)
+- **[com.google.fonts/check/shaping/regression]:** Fix regressions in HTML outoput and make the check outout more markdown-compatible. (PR #4406)
+
+#### On the OpenType profile
+- **[com.adobe.fonts/check/varfont/same_size_instance_records]:** Skip variable fonts without named instances. (issue #4410)
+
+#### On the Google Fonts Profile
+  - **[com.google.fonts/check/metadata/valid_name_values]:**  Compare METADATA family name against the font's best family name (issue #4262)
+  - **[com.google.fonts/check/name/license_url]:** New OFL website URL is expected, while the old one emits a WARN (issue #4358)
+
+#### On the TypeNework Profile
+  - Updated including latest universal checks and improved writing of some rationales and log messages. (PR #4402)
+
+
+## 0.10.8 (2023-Dec-15)
+  - New status result: "FATAL". To be used when a problem detected is extremely bad and must be imediately addressed. (issue #4374 / Discussion #4364)
+  - New command-line flag `--error-code-on` to define the threshold for emitting error code 1. By default, the FontBakery process still communicates an error code 1 if there's any check resulting in FAIL or worse. But with this flag, the user (for instance, in a continuous integration setup) can change the behaviour, such as making a CI job break only when getting a FATAL check-result (or, alternatively, making it even stricter by also breaking CI jobs on WARNs). (PR #4376)
+
+### Changes to existing checks
+#### On the Google Fonts Profile
+  - **[com.google.fonts/check/metadata/parses]:**  Changed from **FAIL** to **FATAL** (issue #4374)
+  - **[com.google.fonts/check/glyph_coverage]:** Rewrite check to follow new glyphsets API and data sets (issue #4379)
+
+
+## 0.10.7 (2023-Dec-13)
+### Changes to existing checks
+#### On the Google Fonts Profile
+  - **[com.google.fonts/check/name/family_and_style_max_length]:** This test has been extensively reworked, thanks to feedback from @vv-monsale, @moontypespace and @RosaWagner (issue #4316, issue #4104)
+
+#### On the Universal Profile
+  - **[com.google.fonts/check/contour_count]:** U+0025 PERCENT SIGN and U+2031 PER TEN THOUSAND SIGN can also have 4 and 8 contours, respectively (issue #4365)
+  - **[com.google.fonts/check/interpolation_issues]:** Fix crash when using fonttools>=4.46.0, crash when only ignored issues were found, and missing location formatting for contour order issues. (issue #4356)
+
+
+## 0.10.6 (2023-Dec-01)
+### Note-worthy code changes
+  - There are a few Google Fonts profile dependencies that MUST always be up-to-date because they hold data: **glyphsets**, **gflanguages**, **shaperglot** and **axisregistry**. These will from now on be handled differenty on `setup.py`, so that only their latest available packages are acceptable for installation. Thanks @yanone for noticing and reporting this issue. (issue #4351)
+
+
+## 0.10.5 (2023-Dec-01)
+### Note-worthy code changes
+  - Serialize a check's documentation along with the other properties so reporters can use the info. (PR #4345)
+
+### Changes to existing checks
+#### On the Open Type Profile
+  - **[com.adobe.fonts/check/postscript_name]:** Render GitHub Flavoured Markdown on HTML reporter output, so that we can have nice things like tables. (issue #4346)
+
+#### On the Universal Profile
+  - **[com.google.fonts/check/arabic_spacing_symbols]:** "Check that Arabic spacing symbols U+FBB2–FBC1 aren't classified as marks." Originally implemented in v0.10.2 / **No longer marked as experimental.** (issue #4295)
+
+#### On the Google Fonts Profile
+  - **[@condition github_gfonts_ttFont]:** Fixed a bug that was not properly handling the square brackets used in variable font file names. (issue #4340)
+  - **[com.google.fonts/check/version_bump]:** Improved log messages making them more legible and also fixing the formating of the version numbers (issue #4340)
+  - **[com.google.fonts/check/glyphsets/shape_languages]:** React to new glyphset data as per glyphsets==0.6.6. This finalizes the check as originally intended. (issue #4147)
+
+
+## 0.10.4 (2023-Nov-17)
+### Note-worthy code changes
+  - With significant performance improvement on some of the checks (**check/hinting_stats**, **check/varfont/generate_static** and **check/interpolation_issues**), from a dozen hours down to a few seconds ;-) Thanks Simon & Behdad for that performance boost!
+
+### Changes to existing checks
+#### On the Universal Profile
+  - **[com.google.fonts/check/arabic_high_hamza]:** Check area of arabic letter high hamza (U+0621) to be roughly the same as arabic letter hamza (U+0675) (issue #4315)
+  - **[com.google.fonts/check/xavgcharwidth]:** This check now also applies to CFF-flavoured fonts (issue #4212)
+
+#### On the Google Fonts Profile
+  - **[com.google.fonts/check/metadata/escaped_strings]:** Accept escaped quotes. They're fine. This check is really meant to detect things like "Juli\303\241n" instead of "Julián". (issue #4331)
+  - **[com.google.fonts/check/glyphsets/shape_languages]:** Use tables to make the check results more readable. (issue #4326)
+
+
+## 0.10.3 (2023-Nov-02)
+### New checks
+#### Added to the Google Fonts Profile
+  - **EXPERIMENTAL - [com.google.fonts/check/glyphsets/shape_languages]:** This check uses a heuristic to determine which GF glyphsets a font supports. Then it checks the font for correct shaping behaviour for all languages in those glyphsets. (issue #4147)
+
+### Changes to existing checks
+#### On the OpenType profile
+  - **[com.google.fonts/check/monospace]:** The check result has been made more consistent when there are outliers and the font is not set to monospaced in the `post` table. (issue #3839)
+
+#### On the Google Fonts Profile
+  - **[com.google.fonts/check/metadata/consistent_repo_urls]:** Git URLs can contain dashes and also there may be multiple URLs in a single description file. (issue #4316)
+
+
+## 0.10.2 (2023-Oct-20)
+### New checks
+#### Added to the Universal Profile
+  - **EXPERIMENTAL - [com.google.fonts/check/arabic_spacing_symbols]:** Check that Arabic spacing symbols U+FBB2–FBC1 aren't classified as marks. (issue #4295)
+  - **EXPERIMENTAL - [com.google.fonts/check/arabic_high_hamza]:** Check that glyph for U+0675 ARABIC LETTER HIGH HAMZA is not a mark. (issue #4290)
+
+### Changes to existing checks
+#### On the Universal Profile
+  - **EXPERIMENTAL - [com.google.fonts/check/legacy_accents]:** Legacy accents cannot have zero-width. Previously we were expecting those to not be "too narrow". (issue #4310)
+
+
+## 0.10.1 (2023-Oct-13)
+### New checks
+#### Added to the Universal Profile
+  - **EXPERIMENTAL - [com.google.fonts/check/legacy_accents]:** Legacy accents must not be used in composites and must have positive width (issue #3959)
+  - **EXPERIMENTAL - [com.google.fonts/check/family/equal_codepoint_coverage]:** Previously called **com.google.fonts/check/family/equal_numbers_of_glyphs**, this check has been reworked and re-enabled. It now checks that the encoded glyphset is consistent across a family. (issue #4180)
+
+### Changes to existing checks
+#### On the Google Fonts Profile
+  - **[com.google.fonts/check/license/OFL_body_text]:** Make the check more tolerant to minor and negligible differences on the contents of the OFL license text, ignoring white space (tabs, line-breaks and space chars). (issue #4289)
+
+
+## 0.10.0 (2023-Oct-12)
+### Release notes
+  - This release adds support for marking checks as **experimental**, which will make them not affect the process exit code and so will allow such checks to result in a FAIL without breaking continuous integration builds. This will give time for users to report problems on the implementation of new checks. If after some time nobody complains, then those new checks will more safely be made effective by removing their `experimental` tag.
+
+  - **Bugfix:** Display informative message when users forget to install the `extra` needed for the vendor-specific profile they're trying to run (issue #4292)
+
+### New checks
+#### Added to the Google Fonts Profile
+  - **EXPERIMENTAL - [com.google.fonts/check/metadata/empty_designer]:** Any font published on Google Fonts must credit one or several authors, foundry and/or individuals. (issue #3961)
+
+### Changes to existing checks
+#### On the Google Fonts Profile
+  - **[com.google.fonts/check/metadata/consistent_repo_urls]:** Report missing source.repository_url (issue #4285), check with other sources (issue #3521), test repo URL more flexibly (issue #4107)
+  - **[com.google.fonts/check/description/urls]:** fixed an ERROR due to trying to call `startswith` method on NoneType. Also upgrade check to FAIL and report any links with empty text content. (issue #4283)
+  - **[com.google.fonts/check/glyph_coverage]:** Only check for GF Latin Kernel when fonts have a primary_script set. (issue #4111)
+  - **[com.google.fonts/check/vf_has_static_fonts]:** This check now allows manually-hinted static fonts but otherwise warns if fonts are found in the static/ directory. (issue #4092)
+  - **[com.google.fonts/check/unitsperem_strict]:** Relax the range of values which cause FAIL. (issue #4094)
+  - **[com.google.fonts/check/metadata/nameid/full_name]:** Only English language name entries will be considered. (issue #4000)
+  - **[com.google.fonts/check/metadata/nameid/font_name]:** Only English language name entries will be considered. (issue #4000)
+  - **[com.google.fonts/check/metadata/valid_name_values]:** Allow name table entries in any language to match the METADATA. (issue #4000)
+  - **[com.google.fonts/check/metadata/valid_full_name_values]:** Allow name table entries in any language to match the METADATA. (issue #4000)
+  - **[com.google.fonts/check/metadata/valid_post_script_name_values]:** Allow name table entries in any language to match the METADATA. (issue #4000)
+  - **[com.google.fonts/check/font_names]:** This check now highlights names which did not match the expected values. (issue #3912)
+
+#### On the Universal Profile
+  - **[com.google.fonts/check/interpolation_issues]:** Improved the warning message to show the actual master locations. (PR #4288)
+
+
+## 0.9.2 (2023-Sep-23)
+### Stable release notes
+  - **[com.google.fonts/check/caps_vertically_centered]** was temporarily disabled, until the calculations are properly reviewed. (issue #4274)
+
+### Changes to existing checks
+#### On the Universal profile
+  - **[com.google.fonts/check/caps_vertically_centered]:** Fix yet another ERROR on fonts without ASCII letters (issue #4269)
+  - **[com.google.fonts/check/contour_count]:** This check now FAILs if a glyph which should have contours is found to have no contours (issue #4137)
+
+#### On the Google Fonts Profile
+  - **[com.google.fonts/check/metadata/unreachable_subsetting]:** Report codepoints in supplementary Unicode planes, and codepoints with no glyphset support at all (PR #4273)
+
+
+## 0.9.1 (2023-Sep-19)
+### Stable release notes
+  - Guido Ferreyra from Type Network contributed improvements to the HTML Reporter which now displays vendor-specific branding (like logo and custom header text - whenever provided). This also includes improvements on the layout of the HTML page with the goal of improving readability of the reports. (PRs #4260 and #4263)
+  - This version also introduces a new `Type Network` vendor-specific profile. (PR #4260)
+
+### Bug Fixes
+#### On the Universal Profile
+  - **[com.google.fonts/check/caps_vertically_centered]:** Fix error on font without ASCII letters (issue #4265)
+
+### New Checks
+#### Added to the TypeNetwork Profile
+  A large portion of these 16 checks below are derived from existing checks from other profiles, but adapted to the specific needs of Type Network. For that reason, we may in the future embrace some of those different criteria, perhaps on the `Universal` profile. But that will require us to look more closely and try to reach consensus of each of them, whenever appropriate.
+
+  - **[com.typenetwork/check/glyph_coverage]:** Type Network expects that fonts in its catalog support at least the minimal set of characters. (PR #4260)
+  - **[com.typenetwork/check/vertical_metrics]:** OS/2 and hhea vertical metric values should match. This will produce the same linespacing on Mac, GNU+Linux and Windows. (PR #4260)
+  - **[com.typenetwork/check/font_is_centered_vertically]:** Similar to the one on the `Universal` profile, but with a different implementation. (PR #4260)
+  - **[com.typenetwork/check/family/tnum_horizontal_metrics]:** Tabular figures need to have the same metrics in all styles in order to allow tables to be set with proper typographic control, but to maintain the placement of decimals and numeric columns between rows. (PR #4260)
+  - **[com.typenetwork/check/family/equal_numbers_of_glyphs]:** Check if all fonts in a family have the same number of glyphs. (PR #4260)
+  - **[com.typenetwork/check/usweightclass]:**  (PR #4260)
+  - **[com.typenetwork/check/family/valid_underline]:** If underline thickness is not set nothing gets rendered on Figma. (PR #4260)
+  - **[com.typenetwork/check/family/valid_strikeout]:** If strikeout size is not set, nothing gets rendered on Figma. (PR #4260)
+  - **[com.typenetwork/check/fstype]:** Type Network's EULA is more accurately represented by setting fstype to 4, also known as 'Print & Preview'. This setting indicates that the fonts may be embedded, and temporarily loaded on the remote system, but documents that use it must not be editable. (PR #4260)
+  - **[com.typenetwork/check/composite_glyphs]:** For performance reasons, is desirable that TTF fonts use composites glyphs. (PR #4260)
+  - **[com.typenetwork/check/PUA_encoded_glyphs]:** Since the use of PUA encoded glyphs is not frequent, we want to WARN when a font can be a bad use of it, like to encode small caps glyphs. (PR #4260)
+  - **[com.typenetwork/check/marks_width]:** To avoid incorrect overlappings when typing, glyphs that are spacing marks must have width, on the other hand, combining marks should be 0 width. (PR #4260)
+  - **[com.typenetwork/check/name/mandatory_entries]:** For proper functioning, fonts must have some specific records. Other name records are optional but desireable to be present. (PR #4260)
+  - **[com.typenetwork/check/varfont/axes_have_variation]:** Axes on a variable font must have variation. In other words min and max values need to be different. It’s common to find fonts with unnecesary axes added like `ital`. (PR #4260)
+  - **[com.typenetwork/check/varfont/fvar_axes_order]:** If a font doesn’t have a STAT table, instances get sorted better on Adobe Apps when fvar axes follow a specific order: 'opsz', 'wdth', 'wght','ital', 'slnt'. **Note:** We should deprecate this check since STAT is a required table. (PR #4260)
+  - **[com.typenetwork/check/family/duplicated_names]:** Check if font doesn’t have duplicated names within a family. Having duplicated name records can produce several issues like not all fonts being listed on design apps or incorrect automatic creation of CSS classes and @font-face rules. (PR #4260)
+
+
+## 0.9.0 (2023-Sep-12)
+### Stable release notes
+  To see the full list of changes, please also read below the changelog entries of these pre-releases of v0.9.0:
+  - 0.9.0a3 (2023-Sep-05)
+  - 0.9.0a2 (2023-Aug-04)
+  - 0.9.0a1 (2023-Aug-02)
+
+### Noteworthy code-changes
+  - gflanguages dependency updated to v0.5.6
+
+### New Checks
+#### Added to the OpenType Profile
+  - **[com.adobe.fonts/check/postscript_name]:** FAIL on bad postscript names (issue #4254).
+
+### Changes to existing checks
+#### On the OpenType Profile
+  - **[com.google.fonts/check/family_naming_recommendations]:** Two validations of PostScript names were moved out of this check and into **com.adobe.fonts/check/postscript_name** which yields FAILs (issue #4254).
+
+
+## 0.9.0a3 (2023-Sep-05)
+### Note-worthy code changes
+  - The default log level has been changed to WARN. Now that profiles are big, you don't (by default) want a big long list of everything that is OK about your font; you just want to know the problems to fix. Make WARN the default and have people get a list of PASS if they ask for it. (issue #4186)
+
+### Bug-fixes
+  - Fix summary statistics on HTML reporter (issue #3997)
+  - Updated **fonts_public.proto** to fix ERRORs on parsing fields `stroke` and `classifications` that were recently added to the schema (issue #4249)
+
+### New Checks
+#### Added to the Universal Profile
+  - **[com.google.fonts/check/caps_vertically_centered]:** If possible, the uppercase glyphs should be vertically centered in the em box. (issue #4139)
+
+#### Added to the Google Fonts Profile
+  - **[com.google.fonts/check/metadata/primary_script]:** New check that guesses the primary script and compares to METADATA.pb (issue #4109)
+
+#### Added to the UFO Profile
+  - **[com.thetypefounders/check/features_default_languagesystem]:** Checks if a default languagesystem statement is present in feature files and warns if the compiler will not insert one automatically (issue #4011)
+
+### Changes to existing checks
+#### On the Universal profile
+  - **[com.google.fonts/check/os2_metrics_match_hhea]:** Re-worded rationale text to be vendor-neutral (issue #4206)
+  - **[com.google.fonts/check/mandatory_glyphs]:** The check which ensures that the `.notdef` glyph is not empty has been upgraded from a WARN to a FAIL. (issue #4093)
+
+#### On the Google Fonts profile
+  - **[com.google.fonts/check/font-v]:** Change rationale to reflect the fact that this check emits an INFO (issue #4067)
+  - **[com.google.fonts/check/vertical_metrics_regressions]:** Fix an error when the provided font did not have a Regular style. (issue #3897)
+  - **[com.google.fonts/check/cjk_not_enough_glyphs]:** This check is now only run when a font has CJK codepages or ranges declared in the `OS/2` table. Other CJK-related checks are run on fonts with a minimum of 150 CJK glyphs. (issue #3846)
+  - **[com.google.fonts/check/grade_reflow]**: This check has been renamed to **com.google.fonts/check/varfont/duplexed_axis_reflow** and now also checks the `ROND` axis. (issue #4200)
+  - **[com.google.fonts/check/glyph_coverage]:** This check is now skipped for icon fonts. (issues #3323 and #3327)
+
+#### On the OpenType profile
+  - **[com.google.fonts/check/family/panose_familytype], [com.google.fonts/check/family/panose_proportion]:** Failures have been downgraded to warnings. (issue #4192)
+
+
+## 0.9.0a2 (2023-Aug-04)
+### Changes to existing checks
+#### On the Shaping profile
+  - **[com.google.fonts/check/soft_dotted]:** Added affected languages to output & downgraded to WARN. (issue #4085)
+
+
+## 0.9.0a1 (2023-Aug-02)
 ### Note-worthy code changes
   - This is the first version in which we're using the Black auto-formatter on the entire code-base. (Discussions #3397)
-  - Also, now software dependencies can be installed based on the user needs. The default FontBakery installation from PyPI includes only the dependencies for running font-binary checks from the Universal profile. To run source-level checks, one needs to enable the `ufo-sources` extra. (issues #3715 and #3874)
+  - Also, now software dependencies can be installed based on the user needs. The default FontBakery installation from PyPI includes only the dependencies for running font-binary checks from the Universal profile (which includes the OpenType profile). To run source-level checks, one needs to enable the `ufo-sources` extra. For vendor-specific profiles, the profile name has to be used as an extra when installing fontbakery (issues #3715 and #3874)
+  - The **Shaping** and **UFO** checks are no longer included in the Universal profile. To run them use their respective subcommands (`check-shaping` or `check-ufo-sources`).
+  - On the `conditions` field of the `@check` decorator, the "!" character is no longer supported as a boolean-not operator. Please use the "not" keyword for that, instead.
+
+### Bugfixes
+  - A font-file is not needed anymore when running `--list-checks` (issue #3878)
+
+### New Checks
+#### Added to the Universal Profile
+  - **[com.google.fonts/check/alt_caron]:** Check that alternate caron is used in the four affected Latin glyphs. (issue #3308)
+
+### Migrations of checks
+#### Moved to the Shaping profile
+  - **[com.google.fonts/check/dotted_circle]:** from the Universal profile (issue #4161)
+  - **[com.google.fonts/check/soft_dotted]:** from the Universal profile (issue #4161)
 
 ### Changes to existing checks
 #### On the Universal profile
   - **[com.adobe.fonts/check/freetype_rasterizer]:** Added test-code that segfaults with freetype-py version 2.4.0, so that we make sure the problem won't go unnoticed, and will enable us to know when it gets fixed (issue #4143)
+  - **[com.google.fonts/check/interpolation_issues]:** The check ERRORed when ran on CFF2 variable fonts. The check is now SKIPped for such fonts because it depends on the presence of the `gvar` table, which only apply to TrueType variable fonts (https://github.com/miguelsousa/openbakery/issues/28).
+  - **[com.google.fonts/check/valid_glyphnames]:** The check now takes into account that OpenType-CFF2 fonts with `post` table format 3 contain no glyph names, and will yield SKIP.
+  - **[com.google.fonts/check/unique_glyphnames]:** The check now takes into account that OpenType-CFF2 fonts with `post` table format 3 contain no glyph names, and will yield SKIP.
+  - **[com.google.fonts/check/mandatory_glyphs]:** Improved the check's resilience to edge cases that could result in ERRORs.
+  - **[com.google.fonts/check/STAT_in_statics]:** The check now skips fonts that do not have a `STAT` table.
+
+#### On the OpenType profile
+  - **[com.google.fonts/check/italic_angle]**: Fix an ERROR: If any of the glyphs checked (bar, vertical line, left square bracket, etc.) have no outlines, the check will now emit a WARN, because that's useful information. (PR #4187)
 
 
 ## 0.8.13 (2023-Jun-02)
@@ -21,11 +321,11 @@ A more detailed list of changes is available in the corresponding milestones for
 #### Added to the Universal Profile
   - **[com.google.fonts/check/STAT_in_statics]:** Static fonts with more than a single entry per design axis cause trouble on Windows (issue #4149)
 
-#### Added to the Google Fonts Profile
-  - **[com.google.fonts/check/metadata/unreachable_subsetting]:** Implemented checks to ensure that all encoded glyphs in the font are covered by a subset declared in the METADATA.pb (issue #4097)
-
 #### Added to the Open Type Profile
   - **[com.google.fonts/check/name/italic_names]:** Implemented checks for name IDs 1, 2, 16, 17 for Italic fonts (issues #3666 and #3667)
+
+#### Added to the Google Fonts Profile
+  - **[com.google.fonts/check/metadata/unreachable_subsetting]:** Implemented checks to ensure that all encoded glyphs in the font are covered by a subset declared in the METADATA.pb (issue #4097)
 
 #### Added to the Adobe Fonts Profile
   - **[com.adobe.fonts/check/family/consistent_family_name]:** Verifies that family names in the name table are consistent across all fonts in a family. Checks Typographic Family name (nameID 16) if present, otherwise uses Font Family name (nameID 1). (issue #4112)
@@ -35,16 +335,16 @@ A more detailed list of changes is available in the corresponding milestones for
   - **[com.google.fonts/check/linegaps]:** from the OpenType profile (issue #4133)
 
 ### Changes to existing checks
+#### On the Universal Profile
+  - **[com.google.fonts/check/soft_hyphen]:** Improve wording of the rationale. (issue #4095)
+  - **[com.google.fonts/check/linegaps]:** Added rationale (issue #4133)
+
 #### On the Google Fonts profile
   - **[com.google.fonts/check/usweightclass]:** use the axisregistry's name builders instead of the parse module (issue #4113)
   - **[com.google.fonts/check/metadata/broken_links]:** We should not keep email addresses on METADATA.pb files (issue #4110)
   - **[com.google.fonts/check/description/broken_links]:** We should not keep email addresses on DESCRIPTION files (issue #4110)
   - **[com.google.fonts/check/metadata/nameid/font_name]:** Use name id 16, when present, to compute the expected font family name (issue #4086)
   - **[com.google.fonts/check/check/colorfont_tables]:** Update checking criteria according to gf-guide (issue #4131)
-
-#### On the Universal Profile
-  - **[com.google.fonts/check/soft_hyphen]:** Improve wording of the rationale. (issue #4095)
-  - **[com.google.fonts/check/linegaps]:** Added rationale (issue #4133)
 
 ### BugFixes
   - Fix crash on markdown reporter by explicitly specifing UTF-8 encoding (issue #4089)
@@ -69,7 +369,7 @@ A more detailed list of changes is available in the corresponding milestones for
   - Correctly process expected messages when they are plain strings in assert_results_contain() (PR #4015)
 
 ### Migrations of checks
-#### Moved to the OpenType profile  
+#### Moved to the OpenType profile
   - **[com.google.fonts/check/italic_angle]:** from the GoogleFonts profile (issue #3663)
   - **[com.google.fonts/check/mac_style]:** from the GoogleFonts profile (issue #3664)
   - **[com.google.fonts/check/fsselection]:** from the GoogleFonts profile (issue #3665)

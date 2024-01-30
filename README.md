@@ -1,7 +1,6 @@
 [![Latest PyPI Version](https://img.shields.io/pypi/v/fontbakery.svg?style=flat)](https://pypi.python.org/pypi/fontbakery/)
 [![Python](https://img.shields.io/pypi/pyversions/fontbakery.svg?style=flat)](https://pypi.python.org/pypi/fontbakery/)
-[![Build Status](https://github.com/googlefonts/fontbakery/actions/workflows/tox.yml/badge.svg)](https://github.com/googlefonts/fontbakery/actions/)
-[![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-brightgreen.svg)](https://github.com/googlefonts/fontbakery/blob/main/LICENSE.txt)
+[![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-brightgreen.svg)](https://github.com/fonttools/fontbakery/blob/main/LICENSE.txt)
 
 # [![Font Bakery](data/logo.png)](http://fontbakery.com)
 
@@ -12,11 +11,11 @@ And for a full written introduction [check out our documentation at Read The Doc
 
 For video introductions, see the [TypeCon 2018](https://www.youtube.com/watch?v=5S3cN3VHfBg) and [ATypI 2020](https://www.youtube.com/watch?v=6OKE6p9E0eY)  FontBakery presentations.
 
-Font Bakery has an active community of contributors from foundries around the world, including Adobe Fonts, Dalton Maag, Type Network, and Google Fonts. Please join our developer chat channel at [gitter.im/fontbakery/Lobby](https://gitter.im/fontbakery/Lobby)
+Font Bakery has an active community of contributors from foundries around the world, including Adobe Fonts, Dalton Maag, Type Network, and Google Fonts.
 
 Font Bakery is not an official Google project, and Google provides no support for it.
-However, throughout 2018-2023 a project maintainer, Felipe Corrêa da Silva Sanches ([@felipesanches](https://github.com/felipesanches)), is commissioned by the Google Fonts team to maintain it.
-The original software architecture (and maintenance of it) is by Lasse Fister ([@graphicore](https://github.com/graphicore).
+However, throughout 2018-2024 a project maintainer, Felipe Corrêa da Silva Sanches ([@felipesanches](https://github.com/felipesanches)), is commissioned by the Google Fonts team to maintain it.
+The original software architecture (and maintenance of it) is by Lasse Fister ([@graphicore](https://github.com/graphicore)).
 
 ## Run Font Bakery automatically on Github Actions
 
@@ -48,19 +47,16 @@ For full developer documentation, check out [font-bakery.readthedocs.io](https:/
 
 See the guide to [Getting Started as a Contributor](https://font-bakery.readthedocs.io/en/stable/developer/contrib-getting-started.html).
 
-## Web Dashboard
-
-A web dashboard for monitoring check-results of project collections is at <https://github.com/googlefonts/fontbakery-dashboard>
-
 ## History
 
 The project was initiated by Dave Crossland in 2013 to accelerate the onboarding process for Google Fonts. 
 In 2017 Lasse Fister and Felipe Sanches rewrote it into a modern, modular architecture suitable for both individuals and large distributors.
 Felipe has maintained the check contents since 2016.
 
-Lasse also began a sister project, [Font Bakery Dashboard](https://GitHub.com/GoogleFonts/Fontbakery-Dashboard):
+In 2017, Lasse began a sister project, [Font Bakery Dashboard](https://GitHub.com/GoogleFonts/Fontbakery-Dashboard):
 A UI and a cloud system that scales up for checking 1,000s of font files super fast and in parallel, by using 1,000s of "container" virtual machines.
 See his [TypoLabs 2018 talk on YouTube](https://www.youtube.com/watch?v=Kqhzg89zKYw) and its [presentation deck](https://docs.google.com/presentation/d/14dU3cUXelwvpVokhKYmJ6jT51AASDaOFyEUSdxb0RAg/).
+However, the project was halted at the end of 2019.
 
 Most of the checks are for OpenType binary files, and project metadata files. 
 (Currently, the Google Fonts `METADATA.pb` files are supported.)

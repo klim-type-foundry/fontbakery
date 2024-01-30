@@ -1,9 +1,11 @@
 import os
-import subprocess
-import sys
 import re
-import pytest
+import subprocess
 import tempfile
+
+import pytest
+
+TOOL_NAME = "fontbakery"
 
 
 def test_list_subcommands_has_all_scripts():
@@ -21,29 +23,58 @@ def test_list_subcommands_has_all_scripts():
     ]
     scripts = scripts + [("check-" + i).replace("_", "-") for i in CLI_PROFILES]
     subcommands = (
-        subprocess.check_output(["fontbakery", "--list-subcommands"]).decode().split()
+        subprocess.check_output([TOOL_NAME, "--list-subcommands"]).decode().split()
     )
     assert sorted(scripts) == sorted(subcommands)
 
 
+def test_list_checks_option(capfd):
+    """Test if 'fontbakery <subcommand> --list-checks' can run successfully and output
+    the expected content."""
+    from fontbakery.profiles.universal import UNIVERSAL_PROFILE_CHECKS
+
+    subprocess.run([TOOL_NAME, "check-universal", "--list-checks"], check=True)
+    output = capfd.readouterr().out
+    assert set(output.split()) == set(UNIVERSAL_PROFILE_CHECKS)
+
+
 def test_command_check_googlefonts():
-    """Test if `fontbakery check-googlefonts` can run successfully`."""
-    subprocess.check_output(["fontbakery", "check-googlefonts", "-h"])
-
-    test_font = os.path.join("data", "test", "nunito", "Nunito-Regular.ttf")
-
-    subprocess.check_output(
+    """Test if 'fontbakery check-googlefonts' can run successfully."""
+    subprocess.run([TOOL_NAME, "check-googlefonts", "-h"], check=True)
+    subprocess.run(
         [
-            "fontbakery",
+            TOOL_NAME,
             "check-googlefonts",
             "-c",
             "com.google.fonts/check/canonical_filename",
-            test_font,
-        ]
+            os.path.join("data", "test", "nunito", "Nunito-Regular.ttf"),
+        ],
+        check=True,
     )
+    with pytest.raises(subprocess.CalledProcessError):
+        subprocess.run([TOOL_NAME, "check-googlefonts"], check=True)
+
+
+@pytest.mark.parametrize(
+    "subcommand",
+    [
+        "check-profile",
+        "check-opentype",
+        "check-ufo-sources",
+    ],
+)
+def test_command_check_profile(subcommand):
+    """Test if 'fontbakery <subcommand>' can run successfully."""
+    subprocess.run([TOOL_NAME, subcommand, "-h"], check=True)
 
     with pytest.raises(subprocess.CalledProcessError):
-        subprocess.check_output(["fontbakery", "check-googlefonts"])
+        subprocess.run([TOOL_NAME, subcommand], check=True)
+
+
+def test_tool_help():
+    """Test if just 'fontbakery' command can run successfully."""
+    assert subprocess.run([TOOL_NAME, "-h"]).returncode == 0
+    assert subprocess.run([TOOL_NAME]).returncode == 0
 
 
 @pytest.mark.xfail(
@@ -54,17 +85,15 @@ def test_command_check_googlefonts():
 # Please, only remove the xfail mark once the test is more robust / future proof.
 def test_status_log_is_indented():
     """Test if statuses are printed in a limited boundary."""
-    test_font = os.path.join("data", "test", "nunito", "Nunito-Regular.ttf")
-
     result = subprocess.run(
         [
-            "fontbakery",
+            TOOL_NAME,
             "check-googlefonts",
             "-c",
             "old_ttfautohint",
             "-c",
             "font_copyright",
-            test_font,
+            os.path.join("data", "test", "nunito", "Nunito-Regular.ttf"),
         ],
         capture_output=True,
     )
@@ -73,47 +102,23 @@ def test_status_log_is_indented():
     stdout = p.sub("#", result.stdout.decode()).split("\n")
     assert "\n".join(stdout[24:30]) == "\n".join(
         [
-            "     #[0#31#40mFAIL#[0m Name Table entry: Copyright notices should match a      ",
-            '          pattern similar to: "Copyright 2019 The Familyname Project Authors    ',
-            '          (git url)"                                                            ',
-            "          But instead we have got:                                              ",
-            '          "Copyright 2014 The Nunito Project Authors (contact@sansoxygen.com)"  ',
-            "          [code: bad#notice#format]                                             ",
+            "     #[0#31#40mFAIL#[0m Name Table entry: Copyright notices should match a      ",  # noqa:E501 pylint:disable=C0301
+            '          pattern similar to: "Copyright 2019 The Familyname Project Authors    ',  # noqa:E501 pylint:disable=C0301
+            '          (git url)"                                                            ',  # noqa:E501 pylint:disable=C0301
+            "          But instead we have got:                                              ",  # noqa:E501 pylint:disable=C0301
+            '          "Copyright 2014 The Nunito Project Authors (contact@sansoxygen.com)"  ',  # noqa:E501 pylint:disable=C0301
+            "          [code: bad#notice#format]                                             ",  # noqa:E501 pylint:disable=C0301
         ]
     )
     assert "\n".join(stdout[10:15]) == "\n".join(
         [
-            "     #[0#36#40mINFO#[0m Could not detect which version of ttfautohint was used  ",
-            "          in this font. It is typically specified as a comment in the font      ",
-            "          version entries of the 'name' table. Such font version strings are    ",
-            "          currently: ['Version 3.000', 'Version 3.000'] [code:                  ",
-            "          version#not#detected]                                                 ",
+            "     #[0#36#40mINFO#[0m Could not detect which version of ttfautohint was used  ",  # noqa:E501 pylint:disable=C0301
+            "          in this font. It is typically specified as a comment in the font      ",  # noqa:E501 pylint:disable=C0301
+            "          version entries of the 'name' table. Such font version strings are    ",  # noqa:E501 pylint:disable=C0301
+            "          currently: ['Version 3.000', 'Version 3.000'] [code:                  ",  # noqa:E501 pylint:disable=C0301
+            "          version#not#detected]                                                 ",  # noqa:E501 pylint:disable=C0301
         ]
     )
-
-
-def test_command_check_profile():
-    """Test if `fontbakery check-profile` can run successfully`."""
-    subprocess.check_output(["fontbakery", "check-profile", "-h"])
-
-    with pytest.raises(subprocess.CalledProcessError):
-        subprocess.check_output(["fontbakery", "check-profile"])
-
-
-def test_command_check_opentype():
-    """Test if `fontbakery check-opentype` can run successfully`."""
-    subprocess.check_output(["fontbakery", "check-opentype", "-h"])
-
-    with pytest.raises(subprocess.CalledProcessError):
-        subprocess.check_output(["fontbakery", "check-opentype"])
-
-
-def test_command_check_ufo_sources():
-    """Test if `fontbakery check-ufo-sources` can run successfully`."""
-    subprocess.check_output(["fontbakery", "check-ufo-sources", "-h"])
-
-    with pytest.raises(subprocess.CalledProcessError):
-        subprocess.check_output(["fontbakery", "check-ufo-sources"])
 
 
 def test_command_config_file():
@@ -123,7 +128,7 @@ def test_command_config_file():
     config.close()
     test_font = os.path.join("data", "test", "nunito", "Nunito-Regular.ttf")
     result = subprocess.run(
-        ["fontbakery", "check-googlefonts", "--config", config.name, test_font],
+        [TOOL_NAME, "check-googlefonts", "--config", config.name, test_font],
         stdout=subprocess.PIPE,
     )
     stdout = result.stdout.decode()
@@ -145,7 +150,7 @@ OK = 123
     test_profile = os.path.join("tests", "profiles", "a_test_profile.py")
     result = subprocess.run(
         [
-            "fontbakery",
+            TOOL_NAME,
             "check-profile",
             "-C",
             "--config",
@@ -175,7 +180,7 @@ explicit_checks:
     config.close()
     test_font = os.path.join("data", "test", "varfont", "inter", "Inter[slnt,wght].ttf")
     result = subprocess.run(
-        ["fontbakery", "check-googlefonts", "-C", "--config", config.name, test_font],
+        [TOOL_NAME, "check-googlefonts", "-C", "--config", config.name, test_font],
         stdout=subprocess.PIPE,
     )
     stdout = result.stdout.decode()

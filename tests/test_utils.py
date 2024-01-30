@@ -1,74 +1,145 @@
+import argparse
+import sys
+from unittest.mock import patch
+
 import pytest
 
+from fontbakery.constants import (
+    NO_COLORS_THEME,
+    DARK_THEME,
+    LIGHT_THEME,
+)
 from fontbakery.utils import (
+    apple_terminal_bg_is_white,
     bullet_list,
-    can_shape,
+    exit_with_install_instructions,
+    get_apple_terminal_bg_color,
+    get_theme,
+    html5_collapsible,
+    is_negated,
     pretty_print_list,
-    text_flow,
+    split_camel_case,
     unindent_and_unwrap_rationale,
 )
-from fontTools.ttLib import TTFont
-from fontbakery.codetesting import portable_path
 
 
-def test_text_flow():
-    assert text_flow("") == ""
+def test_exit_with_install_instructions():
+    from fontbakery.utils import set_profile_name
 
-    assert text_flow("Testing") == "Testing"
-
-    assert text_flow("One Two Three") == "One Two Three"
-
-    assert text_flow("One Two Three", width=5) == ("One\n" "Two\n" "Three")
-
-    assert text_flow("One Two Three", width=6, space_padding=True) == (
-        "One   \n" "Two   \n" "Three "
-    )
-
-    assert text_flow("One Two Three", width=7, space_padding=True) == (
-        "One Two\n" "Three  "
-    )
-
-    assert text_flow("One Two Three", width=9, left_margin=2, space_padding=True) == (
-        "  One Two\n" "  Three  "
-    )
-
-    assert text_flow("One Two Three", width=7, left_margin=1, space_padding=True) == (
-        " One   \n" " Two   \n" " Three "
-    )
-
-    assert text_flow(
-        "One Two Three", width=9, left_margin=1, right_margin=1, space_padding=True
-    ) == (" One Two \n" " Three   ")
-
-    assert text_flow(
-        "One Two Three", width=8, left_margin=1, right_margin=1, space_padding=True
-    ) == (" One    \n" " Two    \n" " Three  ")
-
-    assert text_flow(
-        "One Two Three Four", width=7, left_margin=1, right_margin=1, space_padding=True
-    ) == (" One   \n" " Two   \n" " Three \n" " Four  ")
-
-    assert text_flow(
-        "One Two Three Four", width=6, left_margin=1, right_margin=1, space_padding=True
-    ) == (" One  \n" " Two  \n" " Thre \n" " e    \n" " Four ")
+    profile_name = "test-profile"
+    set_profile_name(profile_name)
+    with patch("sys.exit") as mock_exit:
+        exit_with_install_instructions()
+        mock_exit.assert_called_with(
+            f"\nTo run the {profile_name} profile, one needs to install\n"
+            f"fontbakery with the '{profile_name}' extra, like this:\n\n"
+            f"    python -m pip install -U 'fontbakery[{profile_name}]'\n\n"
+        )
 
 
-# FIXME!
-#    assert text_flow("One Two Three",
-#                     width=12,
-#                     left_margin=6,
-#                     first_line_indent=-5,
-#                     space_padding=True) == (     " One   \n"
-#                                             "      Two   \n"
-#                                             "      Three ")
+def test_remove_white_space():
+    from fontbakery.utils import remove_white_space
+
+    assert remove_white_space("\t  ab \n\tcd  ef ") == "abcdef"
 
 
-def test_can_shape():
-    font = TTFont(
-        portable_path("data/test/source-sans-pro/OTF/SourceSansPro-Regular.otf")
-    )
-    assert can_shape(font, "ABC")
-    assert not can_shape(font, "こんにちは")
+@pytest.mark.parametrize(
+    "input_str, expected_tup",
+    [
+        ("", (False, "")),
+        (" ", (False, "")),
+        ("abc", (False, "abc")),
+        (" abc ", (False, "abc")),
+        ("not", (False, "not")),
+        ("not ", (False, "not")),
+        (" not ", (False, "not")),
+        ("notabc", (False, "notabc")),
+        ("not abc", (True, "abc")),
+        ("not  abc", (True, "abc")),
+        (" not  abc ", (True, "abc")),
+    ],
+)
+def test_is_negated(input_str, expected_tup):
+    assert is_negated(input_str) == expected_tup
+
+
+@patch("subprocess.run")
+def test_get_apple_terminal_bg_color(mock_subproc):
+    subproc_output = "6424, 6425, 6425\n"
+    mock_subproc.return_value.stdout = subproc_output
+    assert get_apple_terminal_bg_color() == subproc_output.strip()
+
+
+@pytest.mark.parametrize(
+    "rgb_str, term_prog, expected_bool",
+    [
+        (None, "", False),
+        (None, "iTerm.app", False),
+        ("", "Apple_Terminal", False),
+        ("65535, 65535, 65535", "Apple_Terminal", True),
+    ],
+)
+@patch("fontbakery.utils.get_apple_terminal_bg_color")
+def test_apple_terminal_bg_is_white(
+    mock_get_bg_color, rgb_str, term_prog, expected_bool, monkeypatch
+):
+    monkeypatch.setenv("TERM_PROGRAM", term_prog)
+    mock_get_bg_color.return_value = rgb_str
+    assert apple_terminal_bg_is_white() is expected_bool
+
+
+@pytest.mark.parametrize(
+    "args, expected_theme",
+    [
+        (
+            # args.no_colors is True
+            argparse.Namespace(no_colors=True, light_theme=False, dark_theme=False),
+            NO_COLORS_THEME,
+        ),
+        (
+            # args.light_theme is True
+            argparse.Namespace(no_colors=False, light_theme=True, dark_theme=False),
+            LIGHT_THEME,
+        ),
+        (
+            # args.dark_theme is True
+            argparse.Namespace(no_colors=False, light_theme=False, dark_theme=True),
+            DARK_THEME,
+        ),
+        (
+            # None of the theme flags is True
+            argparse.Namespace(no_colors=False, light_theme=False, dark_theme=False),
+            DARK_THEME,
+        ),
+        (
+            # Multiple theme flags are True (Should return the first True theme)
+            argparse.Namespace(no_colors=True, light_theme=True, dark_theme=True),
+            NO_COLORS_THEME,
+        ),
+    ],
+)
+def test_get_theme(args, expected_theme):
+    assert get_theme(args) == expected_theme
+
+
+@pytest.mark.parametrize(
+    "platform, bg_is_white, expected_theme",
+    [
+        ("", None, DARK_THEME),
+        ("linux", None, DARK_THEME),
+        ("win32", None, DARK_THEME),
+        ("darwin", True, LIGHT_THEME),
+        ("darwin", False, DARK_THEME),
+    ],
+)
+@patch("fontbakery.utils.apple_terminal_bg_is_white")
+def test_get_theme_on_macos(
+    mock_bg_is_white, platform, bg_is_white, expected_theme, monkeypatch
+):
+    mock_bg_is_white.return_value = bg_is_white
+    monkeypatch.setattr(sys, "platform", platform)
+    args = argparse.Namespace(no_colors=False, light_theme=False, dark_theme=False)
+    assert get_theme(args) == expected_theme
 
 
 def test_unindent_and_unwrap_rationale():
@@ -103,6 +174,24 @@ def test_unindent_and_unwrap_rationale():
     assert unindent_and_unwrap_rationale(rationale) == expected_rationale
 
 
+def test_html5_collapsible():
+    assert (
+        html5_collapsible("abc", "ABC")
+        == "<details><summary>abc</summary><div>ABC</div></details>"
+    )
+
+
+def test_split_camel_case():
+    assert split_camel_case("") == ""
+    assert split_camel_case("abc") == "abc"
+    assert split_camel_case("Abc") == "Abc"
+    assert split_camel_case("abC") == "ab C"
+    assert split_camel_case("AbC") == "Ab C"
+    assert split_camel_case("ABC") == "A B C"
+    assert split_camel_case("Lobster") == "Lobster"
+    assert split_camel_case("LibreCaslonText") == "Libre Caslon Text"
+
+
 def _make_values(count: int) -> list:
     """Helper method that returns a list with 'count' number of items"""
     return [f"item {i}" for i in range(1, count + 1)]
@@ -132,7 +221,7 @@ def test_pretty_print_list_full(values, expected_str):
     assert pretty_print_list(config, values, sep=" + ") == expected_str.replace(
         ", ", " + "
     )
-    assert pretty_print_list(config, values, glue="&") == expected_str.replace(
+    assert pretty_print_list(config, values, glue=" & ") == expected_str.replace(
         "and", "&"
     )
 
@@ -232,17 +321,13 @@ def test_pretty_print_list_shorten(values, shorten, expected_str):
         assert pretty_print_list(config, values) == expected_str
 
 
-# FIXME: The spurious extra spaces in the expected strings below seem like
-#        bad formatting being enforced by the code-test
-#        Or, in other words, the code-test simply documenting
-#        the poor output of the code it tests.
 @pytest.mark.parametrize(
     "values, expected_str",
     [
         (_make_values(1), "\t- item 1"),
-        (_make_values(2), "\t- item 1 \n\n\t- item 2"),
-        (_make_values(3), "\t- item 1\n\n\t- item 2 \n\n\t- item 3"),
-        (_make_values(4), "\t- item 1\n\n\t- item 2\n\n\t- item 3 \n\n\t- item 4"),
+        (_make_values(2), "\t- item 1\n\n\t- item 2"),
+        (_make_values(3), "\t- item 1\n\n\t- item 2\n\n\t- item 3"),
+        (_make_values(4), "\t- item 1\n\n\t- item 2\n\n\t- item 3\n\n\t- item 4"),
     ],
 )
 def test_bullet_list(values, expected_str):

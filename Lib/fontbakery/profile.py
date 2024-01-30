@@ -1,4 +1,4 @@
-from typing import Iterable
+from typing import Iterable, Optional
 from collections import OrderedDict
 from functools import wraps, partial
 from itertools import chain
@@ -11,11 +11,11 @@ import logging
 
 from fontbakery.errors import NamespaceError, SetupError, CircularAliasError
 from fontbakery.callable import (
-    FontbakeryCallable,
     FontBakeryCheck,
     FontBakeryCondition,
     FontBakeryExpectedValue,
 )
+from fontbakery.result import Identity
 from fontbakery.configuration import Configuration
 from fontbakery.message import Message
 from fontbakery.section import Section
@@ -23,7 +23,7 @@ from fontbakery.utils import is_negated
 from fontbakery.status import DEBUG
 
 
-def get_module_profile(module, name=None):
+def get_module_profile(module: types.ModuleType, name=None):
     """
     Get or create a profile from a module and return it.
 
@@ -34,7 +34,8 @@ def get_module_profile(module, name=None):
     If neither name is defined, the module is not considered a profile-module
     and None is returned.
 
-    TODO: describe the `name` argument and better define the signature of `profile_factory`.
+    TODO:
+    Describe the `name` argument and better define the signature of `profile_factory`.
 
     The `module` argument is expected to behave like a python module.
     The optional `name` argument is used when `profile_factory` is called to
@@ -54,8 +55,9 @@ def get_module_profile(module, name=None):
         if "profile_factory" not in module.__dict__:
             return None
         default_section = Section(name or module.__name__)
+        spec = getattr(module, "__spec__")
         profile = module.profile_factory(
-            default_section=default_section, module_spec=module.__spec__
+            default_section=default_section, module_spec=spec
         )
         profile.auto_register(module.__dict__)
         return profile
@@ -171,15 +173,18 @@ class Profile:
         self._check_skip_filter = check_skip_filter
 
         # Used in multiprocessing because pickling the profiles fail on
-        # Mac and Windows. See: googlefonts/fontbakery#2982
+        # Mac and Windows. See: fonttools/fontbakery#2982
         # module_locator can actually a module.__spec__ but also just a dict
         # self.module_locator will always be just a dict
         if module_spec is None:
             # This is a bit of a hack, but the idea is to reduce boilerplate
             # when writing modules that directly define a profile.
             try:
-                frame = inspect.currentframe().f_back
+                frame = inspect.currentframe()
                 while frame:
+                    frame = frame.f_back
+                    if not frame:
+                        break
                     # Note, if __spec__ is a local variable we shpuld be at a
                     # module top level. It should also be the correct ModuleSpec
                     # according to how we do this "usually" (as documented and
@@ -197,14 +202,16 @@ class Profile:
                         ):
                             break
                         module_spec = None  # reset
-                    frame = frame.f_back
             finally:
                 del frame
 
         # If not module_spec: this is only a problem in multiprocessing, in
         # that case we'll be failing to access this with an AttributeError.
         if module_spec is not None:
-            self.module_locator = dict(name=module_spec.name, origin=module_spec.origin)
+            self.module_locator = {
+                "name": module_spec.name,
+                "origin": module_spec.origin,
+            }
 
     _valid_namespace_types = {
         "iterargs": "iterarg",
@@ -218,21 +225,23 @@ class Profile:
     def sections(self):
         return self._sections.values()
 
-    def _add_dict_to_namespace(self, type, data):
+    def _add_dict_to_namespace(self, ns_type, data):
         for key, value in data.items():
             self.add_to_namespace(
-                type, key, value, force=getattr(value, "force", False)
+                ns_type, key, value, force=getattr(value, "force", False)
             )
 
-    def add_to_namespace(self, type, name, value, force=False):
-        if type not in self._valid_namespace_types:
+    def add_to_namespace(self, ns_type, name, value, force=False):
+        if ns_type not in self._valid_namespace_types:
             valid_types = ", ".join(self._valid_namespace_types)
-            raise TypeError(f'Unknow type "{type}"' f" Valid types are: {valid_types}")
+            raise TypeError(
+                f'Unknow type "{ns_type}"' f" Valid types are: {valid_types}"
+            )
 
         if name in self._namespace:
             registered_type = self._namespace[name]
             registered_value = getattr(self, registered_type)[name]
-            if type == registered_type and registered_value == value:
+            if ns_type == registered_type and registered_value == value:
                 # if the registered equals: skip silently. Registering the same
                 # value multiple times is allowed, so we can easily expand profiles
                 # that define (partly) the same entries
@@ -242,15 +251,15 @@ class Profile:
                 msg = (
                     f'Name "{name}" is already registered'
                     f' in "{registered_type}" (value: {registered_value}).'
-                    f' Requested registering in "{type}" (value: {value}).'
+                    f' Requested registering in "{ns_type}" (value: {value}).'
                 )
                 raise NamespaceError(msg)
             else:
                 # clean the old type up
                 del getattr(self, registered_type)[name]
 
-        self._namespace[name] = type
-        target = getattr(self, type)
+        self._namespace[name] = ns_type
+        target = getattr(self, ns_type)
         target[name] = value
 
     def test_dependencies(self):
@@ -280,7 +289,7 @@ class Profile:
                     condition = self.conditions.get(name, None)
                     if condition is not None:
                         dependencies += condition.args
-        if len(failed):
+        if failed:
             comma_separated = ", ".join(failed)
             raise SetupError(
                 f"Profile uses names that are not declared"
@@ -301,7 +310,7 @@ class Profile:
         """
         s = set()
         duplicates = set(x for x in expected_check_ids if x in s or s.add(x))
-        if len(duplicates):
+        if duplicates:
             raise SetupError(
                 "Profile has duplicated entries in its list"
                 " of expected check IDs:\n" + "\n".join(duplicates)
@@ -329,7 +338,7 @@ class Profile:
             try:
                 int(checkid.split("/")[-1])
                 return True
-            except:
+            except ValueError:
                 return False
 
         numerical_check_ids = [c for c in registered_checks if is_numerical_id(c)]
@@ -341,7 +350,7 @@ class Profile:
                 f"Numerical check IDs must be renamed to keyword-based IDs:\n"
                 f"{list_of_checks}\n"
                 f"\n"
-                f"See also: https://github.com/googlefonts/fontbakery/issues/2238\n"
+                f"See also: https://github.com/fonttools/fontbakery/issues/2238\n"
                 f"\n"
             )
 
@@ -382,7 +391,7 @@ class Profile:
             if valid:
                 continue
             messages.append(f"{name}: {message} (value: {value})")
-        if len(messages):
+        if messages:
             return False, "\n".join(messages)
         return True, None
 
@@ -391,7 +400,7 @@ class Profile:
         if has_fallback:
             fallback = args[0]
 
-        if not name in self._namespace:
+        if name not in self._namespace:
             if has_fallback:
                 return fallback
             raise KeyError(name)
@@ -429,7 +438,7 @@ class Profile:
         Item is a check or a condition, which means it can be dependent on
         more conditions, this climbs down all the way.
         """
-        if not key in ("args", "mandatoryArgs"):
+        if key not in ("args", "mandatoryArgs"):
             raise TypeError(f'key must be "args" or "mandatoryArgs", got {key}')
         dependencies = list(getattr(item, key))
         if hasattr(item, "conditions"):
@@ -478,9 +487,8 @@ class Profile:
             args_set = set(args)
             arg = args.pop()
             for check, signature, scope in scopes:
-                if not len(aggregatedArgs["args"][check.name] & args_set):
-                    # there's no args no more or no arguments of check are
-                    # in args
+                if not aggregatedArgs["args"][check.name] & args_set:
+                    # there's no args no more or no arguments of check are in args
                     target = saturated
                 elif (
                     arg == "*check"
@@ -543,7 +551,7 @@ class Profile:
             ), f"Scopes are badly sorted. {current_section} in {seen}"
 
             if current_section != last_section:
-                if len(items):
+                if items:
                     # flush items
                     generators.append(
                         self._execute_section(iterargs, last_section, items)
@@ -553,7 +561,7 @@ class Profile:
                 last_section = current_section
             items.append((check, signature, scope))
         # clean up left overs
-        if len(items):
+        if items:
             generators.append(self._execute_section(iterargs, current_section, items))
 
         for item in chain(*generators):
@@ -565,8 +573,8 @@ class Profile:
         iterargs,
         reverse=False,
         custom_order=None,
-        explicit_checks: Iterable = None,
-        exclude_checks: Iterable = None,
+        explicit_checks: Optional[Iterable] = None,
+        exclude_checks: Optional[Iterable] = None,
     ):
         """
         order must:
@@ -586,7 +594,7 @@ class Profile:
 
         full_order = []
         seen = set()
-        while len(stack):
+        while stack:
             item = stack.pop()
             if item in seen:
                 continue
@@ -643,7 +651,7 @@ class Profile:
                 explicit_checks=explicit_checks,
                 exclude_checks=exclude_checks,
             ):
-                yield (section, check, section_iterargs)
+                yield Identity(section, check, section_iterargs)
 
     def _register_check(self, section, func):
         other_section = self._check_registry.get(func.id, None)
@@ -653,7 +661,10 @@ class Profile:
                 if other_section is not section:
                     logging.debug(
                         "Check {} is already registered in {}, skipping "
-                        "register in {}.".format(func, other_section, section)
+                        "register in {}.",
+                        func,
+                        other_section,
+                        section,
                     )
                 return False  # skipped
             else:
@@ -680,9 +691,8 @@ class Profile:
 
     def check_log_override(
         self,
-        override_check_id
+        override_check_id,
         # see def check_log_override
-        ,
         *args,
         **kwds,
     ):
@@ -850,8 +860,8 @@ class Profile:
         if it is present. If they an item is an instance of FontBakeryCheck,
         FontBakeryCondition or FontBakeryExpectedValue and register it in
         the default section.
-        If an item is a python module, try to get a profile using `get_module_profile(item)`
-        and then using `merge_profile`;
+        If an item is a python module, try to get a profile using
+        `get_module_profile(item)` and then using `merge_profile`;
         If the profile_imports kwarg is given, it is used instead of the one taken from
         the module namespace.
 
@@ -942,7 +952,7 @@ class Profile:
         )
         for section in profile.sections:
             my_section = self._sections.get(str(section), None)
-            if not len(section.checks):
+            if not section.checks:
                 continue
             if my_section is None:
                 # create a new section: don't change other module/profile contents
@@ -991,19 +1001,17 @@ class Profile:
         entries (dictionaries are not ordered usually)
         Otherwise it is valid JSON
         """
-        section, check, iterargs = identity
         values = map(
             # separators are without space, which is the default in JavaScript;
             # just in case we need to make these keys in JS.
-            partial(json.dumps, separators=(",", ":"))
+            partial(json.dumps, separators=(",", ":")),
             # iterargs are sorted, because it doesn't matter for the result
             # but it gives more predictable keys.
             # Though, arguably, the order generated by the profile is also good
             # and conveys insights on how the order came to be (clustering of
             # iterargs). `sorted(iterargs)` however is more robust over time,
             # the keys will be the same, even if the sorting order changes.
-            ,
-            [str(section), check.id, sorted(iterargs)],
+            [str(identity.section), identity.check.id, sorted(identity.iterargs)],
         )
         return '{{"section":{},"check":{},"iterargs":{}}}'.format(*values)
 
@@ -1013,7 +1021,7 @@ class Profile:
         check, _ = self.get_check(item["check"])
         # tuple of tuples instead list of lists
         iterargs = tuple(tuple(item) for item in item["iterargs"])
-        return section, check, iterargs
+        return Identity(section, check, iterargs)
 
     def serialize_order(self, order):
         return map(self.serialize_identity, order)
@@ -1162,16 +1170,13 @@ def check_log_override(check, new_id, overrides, reason=None):
     # Make the callable here and return that.
     new_check = FontBakeryCheck(
         override_wrapper,
-        new_id
+        new_id,
         # Untouched, the reason for this checks existence stays the same!
-        ,
-        rationale=check.rationale
+        rationale=check.rationale,
         # the "Derived ..." part should be prominent, so we always see it
-        ,
-        description=f"{check.description} (derived from {check.id})"
+        description=f"{check.description} (derived from {check.id})",
         # ONLY if there's a reason for derivation, otherwise will take
         # the documentation from the __doc__ string of check.
-        ,
         documentation=(f"{reason}\n" f"\n" f"{check.documentation}")
         if reason and check.documentation
         else (reason or check.documentation or None),
