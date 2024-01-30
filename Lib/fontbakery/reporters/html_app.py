@@ -31,6 +31,16 @@ class HtmlAppReporter(HTMLReporter):
             "index.html",
         )
         # Write JSON data to global JS variable, followed by the HTML markup
-        json_data_string = json.dumps(self.getdoc(), sort_keys=True)
+        doc = self.getdoc()
+        try:
+            json_data_string = json.dumps(doc, sort_keys=True)
+        except TypeError as e:
+            line = (
+                "\n\n------------------------------------------------------------\n\n"
+            )
+            print(line)
+            print(doc)
+            print(line)
+            raise e
         with open(html_path, encoding="utf-8") as f:
             return f"""<script>window.fontBakeryData = {json_data_string};</script>\n{f.read()}"""
