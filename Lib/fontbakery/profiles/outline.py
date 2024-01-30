@@ -1,15 +1,15 @@
+import math
+
 from beziers.path import BezierPath
 
 from fontbakery.callable import condition, check
-from fontbakery.status import FAIL, PASS, WARN
+from fontbakery.status import PASS, WARN
 from fontbakery.section import Section
-from fontbakery.fonts_profile import (  # NOQA pylint: disable=unused-import
-    profile_factory,
-)
 from fontbakery.message import Message
 from fontbakery.utils import bullet_list
-import math
 
+# used to inform get_module_profile whether and how to create a profile
+from fontbakery.fonts_profile import profile_factory  # noqa:F401 pylint:disable=W0611
 
 ALIGNMENT_MISS_EPSILON = 2  # Two point lee-way on alignment misses
 SHORT_PATH_EPSILON = 0.006  # <0.6% of total outline length makes a short segment
@@ -52,7 +52,7 @@ def close_but_not_on(yExpected, yTrue, tolerance):
         more than {FALSE_POSITIVE_CUTOFF} reported misalignments.
     """,
     conditions=["outlines_dict"],
-    proposal="https://github.com/googlefonts/fontbakery/pull/3088",
+    proposal="https://github.com/fonttools/fontbakery/pull/3088",
 )
 def com_google_fonts_check_outline_alignment_miss(ttFont, outlines_dict, config):
     """Are there any misaligned on-curve points?"""
@@ -113,8 +113,8 @@ def com_google_fonts_check_outline_alignment_miss(ttFont, outlines_dict, config)
         of false positives, it will pass if there are more than
         {FALSE_POSITIVE_CUTOFF} reported short segments.
     """,
-    conditions=["outlines_dict", "is_not_variable_font"],
-    proposal="https://github.com/googlefonts/fontbakery/pull/3088",
+    conditions=["outlines_dict", "not is_variable_font"],
+    proposal="https://github.com/fonttools/fontbakery/pull/3088",
 )
 def com_google_fonts_check_outline_short_segments(ttFont, outlines_dict, config):
     """Are any segments inordinately short?"""
@@ -168,8 +168,8 @@ def com_google_fonts_check_outline_short_segments(ttFont, outlines_dict, config)
         This check is not run for variable fonts, as they may legitimately have
         colinear vectors.
     """,
-    conditions=["outlines_dict", "is_not_variable_font"],
-    proposal="https://github.com/googlefonts/fontbakery/pull/3088",
+    conditions=["outlines_dict", "not is_variable_font"],
+    proposal="https://github.com/fonttools/fontbakery/pull/3088",
 )
 def com_google_fonts_check_outline_colinear_vectors(ttFont, outlines_dict, config):
     """Do any segments have colinear vectors?"""
@@ -216,8 +216,8 @@ def com_google_fonts_check_outline_colinear_vectors(ttFont, outlines_dict, confi
         in cases such as extreme ink traps, so should be regarded as advisory and
         backed up by manual inspection.
     """,
-    conditions=["outlines_dict", "is_not_variable_font"],
-    proposal="https://github.com/googlefonts/fontbakery/issues/3064",
+    conditions=["outlines_dict", "not is_variable_font"],
+    proposal="https://github.com/fonttools/fontbakery/issues/3064",
 )
 def com_google_fonts_check_outline_jaggy_segments(ttFont, outlines_dict, config):
     """Do outlines contain any jaggy segments?"""
@@ -261,12 +261,15 @@ def com_google_fonts_check_outline_jaggy_segments(ttFont, outlines_dict, config)
 @check(
     id="com.google.fonts/check/outline_semi_vertical",
     rationale="""
-        This check detects line segments which are nearly, but not quite, exactly horizontal or vertical. Sometimes such lines are created by design, but often they are indicative of a design error.
+        This check detects line segments which are nearly, but not quite, exactly
+        horizontal or vertical. Sometimes such lines are created by design, but often
+        they are indicative of a design error.
 
-        This check is disabled for italic styles, which often contain nearly-upright lines.
+        This check is disabled for italic styles, which often contain nearly-upright
+        lines.
     """,
-    conditions=["outlines_dict", "is_not_variable_font", "is_not_italic"],
-    proposal="https://github.com/googlefonts/fontbakery/pull/3088",
+    conditions=["outlines_dict", "not is_variable_font", "not is_italic"],
+    proposal="https://github.com/fonttools/fontbakery/pull/3088",
 )
 def com_google_fonts_check_outline_semi_vertical(ttFont, outlines_dict, config):
     """Do outlines contain any semi-vertical or semi-horizontal lines?"""

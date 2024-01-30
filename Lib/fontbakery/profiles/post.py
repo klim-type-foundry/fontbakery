@@ -3,9 +3,7 @@ from fontbakery.status import FAIL, PASS, WARN
 from fontbakery.message import Message
 
 # used to inform get_module_profile whether and how to create a profile
-from fontbakery.fonts_profile import (  # NOQA pylint: disable=unused-import
-    profile_factory,
-)
+from fontbakery.fonts_profile import profile_factory  # noqa:F401 pylint:disable=W0611
 
 profile_imports = [(".shared_conditions", ("is_ttf",))]
 
@@ -13,9 +11,11 @@ profile_imports = [(".shared_conditions", ("is_ttf",))]
 @check(
     id="com.google.fonts/check/family/underline_thickness",
     rationale="""
-        Dave C Lemon (Adobe Type Team) recommends setting the underline thickness to be consistent across the family.
+        Dave C Lemon (Adobe Type Team) recommends setting the underline thickness to be
+        consistent across the family.
 
-        If thicknesses are not family consistent, words set on the same line which have different styles look strange.
+        If thicknesses are not family consistent, words set on the same line which have
+        different styles look strange.
     """,
     proposal="legacy:check/008",
     misc_metadata={"affects": [("InDesign", "unspecified")]},
@@ -61,7 +61,7 @@ def com_google_fonts_check_family_underline_thickness(ttFonts):
         is that under the right combination of circumstances, one can generate
         PDF from a font with a post format 3 table, and not have accurate backing
         store for any text that has non-default glyphs for a given codepoint.
-        
+
         It will look fine but not be searchable. This can affect Latin text with
         high-end typography, and some complex script writing systems, especially
         with higher-quality fonts. Those circumstances generally involve creating
@@ -73,7 +73,7 @@ def com_google_fonts_check_family_underline_thickness(ttFonts):
         Apple recommends against use of post format version 4 as "no longer
         necessary and should be avoided". Please see the Apple TrueType reference
         documentation for additional details.
-         
+
         https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6post.html
 
         Acceptable post format versions are 2 and 3 for TTF and OTF CFF2 builds,
@@ -82,8 +82,8 @@ def com_google_fonts_check_family_underline_thickness(ttFonts):
     proposal=[
         "legacy:check/015",
         "https://github.com/google/fonts/issues/215",
-        "https://github.com/googlefonts/fontbakery/issues/2638",
-        "https://github.com/googlefonts/fontbakery/issues/3635",
+        "https://github.com/fonttools/fontbakery/issues/2638",
+        "https://github.com/fonttools/fontbakery/issues/3635",
     ],
 )
 def com_google_fonts_check_post_table_version(ttFont):
@@ -148,8 +148,7 @@ def com_google_fonts_check_italic_angle(ttFont, style):
                     if intersections:
                         return intersections[0].point.x
 
-    calculated_italic_angle = None
-    for glyph_name in (
+    GLYPHS_TO_CHECK = (
         "bar",
         "uni007C",  # VERTICAL LINE
         "bracketleft",
@@ -157,8 +156,23 @@ def com_google_fonts_check_italic_angle(ttFont, style):
         "H",
         "uni0048",  # LATIN CAPITAL LETTER H
         "I",
-        "uni0049",
-    ):  # LATIN CAPITAL LETTER I
+        "uni0049",  # LATIN CAPITAL LETTER I
+    )
+
+    bad_glyphs = []
+    for glyph_name in GLYPHS_TO_CHECK:
+        # Get bounds
+        glyphset = ttFont.getGlyphSet()
+        if glyph_name not in glyphset:
+            continue
+        boundspen = BoundsPen(glyphset)
+        glyphset[glyph_name].draw(boundspen)
+        if not boundspen.bounds:
+            bad_glyphs.append(glyph_name)
+            continue
+
+    calculated_italic_angle = None
+    for glyph_name in GLYPHS_TO_CHECK:
         try:
             paths = BezierPath.fromFonttoolsGlyph(ttFont, glyph_name)
         except KeyError:
@@ -167,7 +181,10 @@ def com_google_fonts_check_italic_angle(ttFont, style):
         # Get bounds
         boundspen = BoundsPen(ttFont.getGlyphSet())
         ttFont.getGlyphSet()[glyph_name].draw(boundspen)
-        (xMin, yMin, xMax, yMax) = boundspen.bounds
+        bounds = boundspen.bounds
+        if not bounds:
+            continue
+        (xMin, yMin, xMax, yMax) = bounds
 
         # Measure at 20% distance from bottom and top
         y_bottom = yMin + (yMax - yMin) * 0.2
@@ -265,15 +282,25 @@ def com_google_fonts_check_italic_angle(ttFont, style):
             passed = False
             yield FAIL, Message(
                 "zero-italic",
-                ("Font is italic, so post.italicAngle should be non-zero."),
+                "Font is italic, so post.italicAngle should be non-zero.",
             )
     else:
         if ttFont["post"].italicAngle != 0:
             passed = False
             yield FAIL, Message(
                 "non-zero-upright",
-                ("Font is not italic, so post.italicAngle should be equal to zero."),
+                "Font is not italic, so post.italicAngle should be equal to zero.",
             )
+
+    if bad_glyphs:
+        passed = False
+        yield WARN, Message(
+            "empty-glyphs",
+            (
+                "The following glyphs were present but did not contain any outlines: "
+                + ", ".join(bad_glyphs)
+            ),
+        )
 
     if passed:
         yield PASS, (f"Value of post.italicAngle is {value}" f' with style="{style}".')

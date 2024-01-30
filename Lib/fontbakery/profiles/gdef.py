@@ -1,11 +1,9 @@
 from fontbakery.callable import check
-from fontbakery.status import FAIL, PASS, WARN, SKIP
+from fontbakery.status import PASS, WARN, SKIP
 from fontbakery.message import Message
 
 # used to inform get_module_profile whether and how to create a profile
-from fontbakery.fonts_profile import (  # NOQA pylint: disable=unused-import
-    profile_factory,
-)
+from fontbakery.fonts_profile import profile_factory  # noqa:F401 pylint:disable=W0611
 
 
 def _is_non_spacing_mark_char(charcode):
@@ -35,11 +33,11 @@ def _get_mark_class_glyphnames(ttFont):
     id="com.google.fonts/check/gdef_spacing_marks",
     rationale="""
         Glyphs in the GDEF mark glyph class should be non-spacing.
-        
+
         Spacing glyphs in the GDEF mark glyph class may have incorrect anchor
         positioning that was only intended for building composite glyphs during design.
     """,
-    proposal="https://github.com/googlefonts/fontbakery/issues/2877",
+    proposal="https://github.com/fonttools/fontbakery/issues/2877",
 )
 def com_google_fonts_check_gdef_spacing_marks(ttFont, config):
     """Check glyphs in mark glyph class are non-spacing."""
@@ -88,7 +86,7 @@ def com_google_fonts_check_gdef_spacing_marks(ttFont, config):
     rationale="""
         Mark characters should be in the GDEF mark glyph class.
     """,
-    proposal="https://github.com/googlefonts/fontbakery/issues/2877",
+    proposal="https://github.com/fonttools/fontbakery/issues/2877",
 )
 def com_google_fonts_check_gdef_mark_chars(ttFont, config):
     """Check mark characters are in GDEF mark glyph class."""
@@ -137,7 +135,7 @@ def com_google_fonts_check_gdef_mark_chars(ttFont, config):
         Only combining mark glyphs should be in that class. Any non-mark glyph
         must not be in that class, in particular spacing glyphs.
     """,
-    proposal="https://github.com/googlefonts/fontbakery/issues/2877",
+    proposal="https://github.com/fonttools/fontbakery/issues/2877",
 )
 def com_google_fonts_check_gdef_non_mark_chars(ttFont, config):
     """Check GDEF mark glyph class doesn't have characters that are not marks."""
@@ -151,7 +149,7 @@ def com_google_fonts_check_gdef_non_mark_chars(ttFont, config):
             if _is_non_spacing_mark_char(charcode) is False
         }
         nonmark_char_glyphnames = {cmap[c] for c in nonmark_chars}
-        glyphname_to_char_mapping = dict()
+        glyphname_to_char_mapping = {}
         for k, v in cmap.items():
             if v in glyphname_to_char_mapping:
                 glyphname_to_char_mapping[v].add(k)

@@ -1,10 +1,10 @@
 import os
+
 from fontbakery.reporters.serialize import SerializeReporter
 from fontbakery.utils import html5_collapsible
-from fontbakery.checkrunner import Status
 from fontbakery import __version__ as version
 
-LOGLEVELS = ["ERROR", "FAIL", "WARN", "SKIP", "INFO", "PASS", "DEBUG"]
+LOGLEVELS = ["ERROR", "FATAL", "FAIL", "WARN", "SKIP", "INFO", "PASS", "DEBUG"]
 
 
 class GHMarkdownReporter(SerializeReporter):
@@ -21,6 +21,7 @@ class GHMarkdownReporter(SerializeReporter):
     def emoticon(name):
         return {
             "ERROR": "\U0001F494",  # 💔  :broken_heart:
+            "FATAL": "\U00002620",  # ☠️  :skull_and_crossbones:
             "FAIL": "\U0001F525",  # 🔥  :fire:
             "WARN": "\U000026A0",  # ⚠️  :warning:
             "INFO": "\U00002139",  # ℹ️  :information_source:
@@ -38,7 +39,7 @@ class GHMarkdownReporter(SerializeReporter):
             return ""
 
     def render_rationale(self, check, checkid):
-        if self.succinct or not "rationale" in check:
+        if self.succinct or not check.get("rationale"):
             return ""
 
         from fontbakery.utils import unindent_and_unwrap_rationale
@@ -98,6 +99,7 @@ class GHMarkdownReporter(SerializeReporter):
     def get_markdown(self):
         checks = {}
         family_checks = []
+        experimental_checks = []
         data = self.getdoc()
         num_checks = 0
         for section in data["sections"]:
@@ -112,11 +114,13 @@ class GHMarkdownReporter(SerializeReporter):
                 for check in cluster:
                     if self.omit_loglevel(check["result"]):
                         continue
-
                     check["profile"] = self.deduce_profile_from_section_name(
                         section["key"][0]
                     )
-                    if "filename" not in check.keys():
+                    if check["experimental"]:
+                        # These will be reported separately
+                        experimental_checks.append(check)
+                    elif "filename" not in check.keys():
                         # That's a family check!
                         family_checks.append(check)
                     else:
@@ -125,7 +129,14 @@ class GHMarkdownReporter(SerializeReporter):
                             checks[key] = []
                         checks[key].append(check)
 
-        md = f"## Fontbakery report\n" f"\n" f"Fontbakery version: {version}\n" f"\n"
+        md = f"## FontBakery report\n\nfontbakery version: {version}\n\n"
+
+        if experimental_checks:
+            experimental_checks.sort(key=lambda c: c["result"])
+            md += html5_collapsible(
+                "<b>[{}] Experimental checks</b>".format(len(experimental_checks)),
+                "".join(map(self.check_md, experimental_checks)) + "<br>",
+            )
 
         if family_checks:
             family_checks.sort(key=lambda c: c["result"])
@@ -148,18 +159,17 @@ class GHMarkdownReporter(SerializeReporter):
                     *[self.emoticon(k) for k in LOGLEVELS]
                 )
                 + (
-                    "|:-----:|:----:|:----:|:----:|:----:|:----:|:----:|\n"
-                    "| {} | {} | {} | {} | {} | {} | {} |\n"
+                    "|" + "|".join([":-----:"] * len(LOGLEVELS)) + "|\n"
+                    "|" + "|".join([" {} "] * len(LOGLEVELS)) + "|\n"
                     ""
                 ).format(*[data["result"][k] for k in LOGLEVELS])
-                + (
-                    "| {:.0f}% | {:.0f}% | {:.0f}% | {:.0f}% | {:.0f}% | {:.0f}% | {:.0f}% |\n"
-                    ""
-                ).format(*[100 * data["result"][k] / num_checks for k in LOGLEVELS])
+                + ("|" + "|".join([" {:.0f}% "] * len(LOGLEVELS)) + "|\n" "").format(
+                    *[100 * data["result"][k] / num_checks for k in LOGLEVELS]
+                )
             )
             md += "\n" + summary_table
 
-        omitted = [l for l in LOGLEVELS if self.omit_loglevel(l)]
+        omitted = [loglvl for loglvl in LOGLEVELS if self.omit_loglevel(loglvl)]
         if omitted:
             md += (
                 "\n"

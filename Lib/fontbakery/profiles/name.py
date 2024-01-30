@@ -1,4 +1,4 @@
-from fontbakery.callable import check, disable
+from fontbakery.callable import check
 from fontbakery.status import FAIL, PASS, WARN, INFO, SKIP
 from fontbakery.message import Message
 from fontbakery.constants import (
@@ -7,11 +7,10 @@ from fontbakery.constants import (
     WindowsEncodingID,
     WindowsLanguageID,
 )
+from fontbakery.utils import markdown_table
 
 # used to inform get_module_profile whether and how to create a profile
-from fontbakery.fonts_profile import (  # NOQA pylint: disable=unused-import
-    profile_factory,
-)
+from fontbakery.fonts_profile import profile_factory  # noqa:F401 pylint:disable=W0611
 
 profile_imports = [(".shared_conditions", ("glyph_metrics_stats", "is_ttf", "is_cff"))]
 
@@ -22,7 +21,7 @@ profile_imports = [(".shared_conditions", ("glyph_metrics_stats", "is_ttf", "is_
         Check the name table for empty records,
         as this can cause problems in Adobe apps.
     """,
-    proposal="https://github.com/googlefonts/fontbakery/pull/2369",
+    proposal="https://github.com/fonttools/fontbakery/pull/2369",
 )
 def com_adobe_fonts_check_name_empty_records(ttFont):
     """Check name table for empty records."""
@@ -80,7 +79,7 @@ def com_google_fonts_check_name_no_copyright_on_description(ttFont):
 
 
 def PANOSE_is_monospaced(panose):
-    # https://github.com/googlefonts/fontbakery/issues/2857#issue-608671015
+    # https://github.com/fonttools/fontbakery/issues/2857#issue-608671015
     from fontbakery.constants import (
         PANOSE_Family_Type,
         PANOSE_Proportion,
@@ -101,7 +100,7 @@ def PANOSE_is_monospaced(panose):
 
 
 def PANOSE_expected(family_type):
-    # https://github.com/googlefonts/fontbakery/issues/2857#issue-608671015
+    # https://github.com/fonttools/fontbakery/issues/2857#issue-608671015
     from fontbakery.constants import (
         PANOSE_Family_Type,
         PANOSE_Proportion,
@@ -144,7 +143,7 @@ def PANOSE_expected(family_type):
 
         Requirements for monospace fonts:
 
-        * post.isFixedPitch - "Set to 0 if the font is proportionally spaced, 
+        * post.isFixedPitch - "Set to 0 if the font is proportionally spaced,
           non-zero if the font is not proportionally spaced (monospaced)"
           (https://www.microsoft.com/typography/otspec/post.htm)
 
@@ -160,7 +159,7 @@ def PANOSE_expected(family_type):
           describes up to sixteen variations. Windows uses bFamilyType, bSerifStyle
           and bProportion in the font mapper to determine family type. It also uses
           bProportion to determine if the font is monospaced."
-          (https://www.microsoft.com/typography/otspec/os2.htm#pan 
+          (https://www.microsoft.com/typography/otspec/os2.htm#pan
            https://monotypecom-test.monotype.de/services/pan2)
 
         * OS/2.xAvgCharWidth must be set accurately.
@@ -172,11 +171,11 @@ def PANOSE_expected(family_type):
 
 
         Please also note:
-        
+
         Thomas Phinney told us that a few years ago (as of December 2019), if you gave
         a font a monospace flag in Panose, Microsoft Word would ignore the actual
         advance widths and treat it as monospaced.
-        
+
         Source: https://typedrawers.com/discussion/comment/45140/#Comment_45140
     """,
     proposal="legacy:check/033",
@@ -213,16 +212,6 @@ def com_google_fonts_check_monospace(ttFont, glyph_metrics_stats):
         )
 
     if seems_monospaced:
-        if ttFont["post"].isFixedPitch == IsFixedWidth.NOT_MONOSPACED:
-            passed = False
-            yield FAIL, Message(
-                "mono-bad-post-isFixedPitch",
-                f"On monospaced fonts, the value of post.isFixedPitch"
-                f" must be set to a non-zero value"
-                f" (meaning 'fixed width monospaced'),"
-                f" but got {ttFont['post'].isFixedPitch} instead.",
-            )
-
         number_of_h_metrics = ttFont["hhea"].numberOfHMetrics
         if number_of_h_metrics != 3:
             passed = False
@@ -265,6 +254,16 @@ def com_google_fonts_check_monospace(ttFont, glyph_metrics_stats):
                 f" You should check the widths of:"
                 f" {unusually_spaced_glyphs}",
             )
+        elif ttFont["post"].isFixedPitch == IsFixedWidth.NOT_MONOSPACED:
+            passed = False
+            yield FAIL, Message(
+                "mono-bad-post-isFixedPitch",
+                f"On monospaced fonts, the value of post.isFixedPitch"
+                f" must be set to a non-zero value"
+                f" (meaning 'fixed width monospaced'),"
+                f" but got {ttFont['post'].isFixedPitch} instead.",
+            )
+
         if passed:
             yield PASS, Message(
                 "mono-good", "Font is monospaced and all related metadata look good."
@@ -421,12 +420,11 @@ def com_google_fonts_check_name_match_familyname_fullfont(ttFont):
 
 
 @check(
-    id="com.google.fonts/check/family_naming_recommendations",
-    proposal="legacy:check/071",
+    id="com.adobe.fonts/check/postscript_name",
+    proposal="https://github.com/miguelsousa/openbakery/issues/62",
 )
-def com_google_fonts_check_family_naming_recommendations(ttFont):
-    """Font follows the family naming recommendations?"""
-    # See http://forum.fontlab.com/index.php?topic=313.0
+def com_adobe_fonts_check_postscript_name(ttFont):
+    """PostScript name follows OpenType specification requirements?"""
     import re
     from fontbakery.utils import get_name_entry_strings
 
@@ -439,19 +437,43 @@ def com_google_fonts_check_family_naming_recommendations(ttFont):
         if bad_psname.search(string):
             bad_entries.append(
                 {
-                    "field": "PostScript Name",
-                    "value": string,
-                    "rec": ("May contain only a-zA-Z0-9 characters and an hyphen."),
+                    "Field": "PostScript Name",
+                    "Value": string,
+                    "Recommendation": (
+                        "May contain only a-zA-Z0-9 characters and a hyphen."
+                    ),
                 }
             )
         if string.count("-") > 1:
             bad_entries.append(
                 {
-                    "field": "Postscript Name",
-                    "value": string,
-                    "rec": ("May contain not more than a single hyphen"),
+                    "Field": "Postscript Name",
+                    "Value": string,
+                    "Recommendation": ("May contain not more than a single hyphen."),
                 }
             )
+
+    if len(bad_entries) > 0:
+        yield FAIL, Message(
+            "bad-psname-entries",
+            f"PostScript name does not follow requirements:\n\n"
+            f"{markdown_table(bad_entries)}",
+        )
+    else:
+        yield PASS, "PostScript name follows requirements."
+
+
+@check(
+    id="com.google.fonts/check/family_naming_recommendations",
+    proposal="legacy:check/071",
+)
+def com_google_fonts_check_family_naming_recommendations(ttFont):
+    """Font follows the family naming recommendations?"""
+    # See http://forum.fontlab.com/index.php?topic=313.0
+
+    from fontbakery.utils import get_name_entry_strings
+
+    bad_entries = []
 
     for string in get_name_entry_strings(ttFont, NameID.FULL_FONT_NAME):
         if len(string) >= 64:
@@ -540,7 +562,7 @@ def com_google_fonts_check_family_naming_recommendations(ttFont):
         This information should be consistent across tables, because there's
         no guarantee which table an app will get the data from.
     """,
-    proposal="https://github.com/googlefonts/fontbakery/pull/2229",
+    proposal="https://github.com/fonttools/fontbakery/pull/2229",
 )
 def com_adobe_fonts_check_name_postscript_vs_cff(ttFont):
     """CFF table FontName must match name table ID 6 (PostScript name)."""
@@ -577,7 +599,7 @@ def com_adobe_fonts_check_name_postscript_vs_cff(ttFont):
 
         This is the TTF/CFF2 equivalent of the CFF 'name/postscript_vs_cff' check.
     """,
-    proposal="https://github.com/googlefonts/fontbakery/pull/2394",
+    proposal="https://github.com/fonttools/fontbakery/pull/2394",
 )
 def com_adobe_fonts_check_name_postscript_name_consistency(ttFont):
     """Name table ID 6 (PostScript name) must be consistent across platforms."""
@@ -604,17 +626,18 @@ def com_adobe_fonts_check_name_postscript_name_consistency(ttFont):
     id="com.adobe.fonts/check/family/max_4_fonts_per_family_name",
     rationale="""
         Per the OpenType spec:
-        
+
         'The Font Family name [...] should be shared among at most four fonts that
         differ only in weight or style [...]'
     """,
+    proposal="https://github.com/fonttools/fontbakery/pull/2372",
 )
 def com_adobe_fonts_check_family_max_4_fonts_per_family_name(ttFonts):
     """Verify that each group of fonts with the same nameID 1 has maximum of 4 fonts."""
     from collections import Counter
     from fontbakery.utils import get_name_entry_strings
 
-    family_names = list()
+    family_names = []
     for ttFont in ttFonts:
         names_list = get_name_entry_strings(
             ttFont,
@@ -649,27 +672,29 @@ def com_adobe_fonts_check_family_max_4_fonts_per_family_name(ttFonts):
             * "...many existing applications that use this pair of names assume that a
               Font Family name is shared by at most four fonts that form a font
               style-linking group"
-            * "For extended typographic families that includes fonts other than the 
+            * "For extended typographic families that includes fonts other than the
               four basic styles(regular, italic, bold, bold italic), it is strongly
-              recommended that name IDs 16 and 17 be used in fonts to create an extended,
-              typographic grouping."
-            * "If name ID 16 is absent, then name ID 1 is considered to be the typographic
-               family name."
+              recommended that name IDs 16 and 17 be used in fonts to create an
+              extended, typographic grouping."
+            * "If name ID 16 is absent, then name ID 1 is considered to be the
+              typographic family name."
 
         https://learn.microsoft.com/en-us/typography/opentype/spec/name
 
-        Fonts within a font family all must have consistent names 
+        Fonts within a font family all must have consistent names
         in the Typographic Family name (nameID 16)
         or Font Family name (nameID 1), depending on which it uses.
 
         Inconsistent font/typographic family names across fonts in a family
         can result in unexpected behaviors, such as broken style linking.
     """,
+    proposal="https://github.com/fonttools/fontbakery/issues/4112",
 )
 def com_adobe_fonts_check_consistent_font_family_name(ttFonts):
-    """Verify that family names in the name table are consistent across all fonts in the family.
-    Checks Typographic Family name (nameID 16) if present,
-    otherwise uses Font Family name (nameID 1)
+    """
+    Verify that family names in the name table are consistent across all fonts in the
+    family. Checks Typographic Family name (nameID 16) if present, otherwise uses Font
+    Family name (nameID 1)
     """
     from fontbakery.utils import get_name_entry_strings
     from collections import defaultdict
@@ -728,7 +753,7 @@ def com_adobe_fonts_check_consistent_font_family_name(ttFonts):
         conform to the font's Upright or Italic style,
         namely IDs 1 & 2 as well as 16 & 17 if they're present.
     """,
-    proposal="https://github.com/googlefonts/fontbakery/issues/3666",
+    proposal="https://github.com/fonttools/fontbakery/issues/3666",
 )
 def com_google_fonts_check_name_italic_names(ttFont, style):
     """Check name table IDs 1, 2, 16, 17 to conform to Italic style."""
@@ -754,7 +779,8 @@ def com_google_fonts_check_name_italic_names(ttFont, style):
         if subfamily_name not in ("Italic", "Bold Italic"):
             yield FAIL, Message(
                 "bad-subfamilyname",
-                f"Name ID 2 (Subfamily Name) does not conform to specs. Only R/I/B/BI are allowed.\n"
+                "Name ID 2 (Subfamily Name) does not conform to specs."
+                " Only R/I/B/BI are allowed.\n"
                 f"Got: '{subfamily_name}'.",
             )
             passed = False
@@ -764,8 +790,7 @@ def com_google_fonts_check_name_italic_names(ttFont, style):
             if "Italic" in get_name(NameID.TYPOGRAPHIC_FAMILY_NAME):
                 yield FAIL, Message(
                     "bad-typographicfamilyname",
-                    "Name ID 16 (Typographic Family Name)"
-                    " must not contain 'Italic'.",
+                    "Name ID 16 (Typographic Family Name) must not contain 'Italic'.",
                 )
                 passed = False
 

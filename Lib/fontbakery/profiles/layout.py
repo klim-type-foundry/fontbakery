@@ -1,11 +1,13 @@
+from opentypespec.tags import FEATURE_TAGS, SCRIPT_TAGS, LANGUAGE_TAGS
+
 from fontbakery.callable import check
 from fontbakery.status import PASS, FAIL
 from fontbakery.message import Message
-from fontbakery.fonts_profile import (  # NOQA pylint: disable=unused-import
-    profile_factory,
-)
 
-from opentypespec.tags import FEATURE_TAGS, SCRIPT_TAGS, LANGUAGE_TAGS
+# used to inform get_module_profile whether and how to create a profile
+from fontbakery.fonts_profile import profile_factory  # noqa:F401 pylint:disable=W0611
+
+profile_imports = ((".", ("shared_conditions",)),)
 
 
 def feature_tags(ttFont):
@@ -27,7 +29,7 @@ DEPRECATED_TAGS = ["hngl", "opbd", "size"]
         questionable approaches, or user error in the font editor. Such typos can
         cause features and language support to fail to work as intended.
     """,
-    proposal="https://github.com/googlefonts/fontbakery/issues/3355",
+    proposal="https://github.com/fonttools/fontbakery/issues/3355",
     severity=8,
 )
 def com_google_fonts_check_layout_valid_feature_tags(ttFont):
@@ -69,7 +71,7 @@ def script_tags(ttFont):
         or questionable approaches, or user error in the font editor. Such typos can
         cause features and language support to fail to work as intended.
     """,
-    proposal="https://github.com/googlefonts/fontbakery/issues/3355",
+    proposal="https://github.com/fonttools/fontbakery/issues/3355",
     severity=8,
 )
 def com_google_fonts_check_layout_valid_script_tags(ttFont):
@@ -105,7 +107,7 @@ def language_tags(ttFont):
         or questionable approaches, or user error in the font editor. Such typos can
         cause features and language support to fail to work as intended.
     """,
-    proposal="https://github.com/googlefonts/fontbakery/issues/3355",
+    proposal="https://github.com/fonttools/fontbakery/issues/3355",
     severity=8,
 )
 def com_google_fonts_check_layout_valid_language_tags(ttFont):

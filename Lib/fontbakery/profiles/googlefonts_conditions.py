@@ -8,7 +8,13 @@ from fontbakery.constants import (
     PlatformID,
     UnicodeEncodingID,
     WindowsLanguageID,
+    PANOSE_Family_Type,
 )
+from fontbakery.utils import exit_with_install_instructions
+
+# used to inform get_module_profile whether and how to create a profile
+from fontbakery.fonts_profile import profile_factory  # noqa:F401 pylint:disable=W0611
+
 from .shared_conditions import style
 
 
@@ -27,7 +33,7 @@ def RIBBI_ttFonts(ttFonts):
 def glyphsFile(glyphs_file):
     import glyphsLib
 
-    return glyphsLib.load(open(glyphs_file))
+    return glyphsLib.load(open(glyphs_file, encoding="utf-8"))
 
 
 @condition
@@ -96,7 +102,6 @@ def stylenames_are_canonical(fonts):
 @condition
 def canonical_stylename(font):
     """Returns the canonical stylename of a given font."""
-    from fontbakery.utils import suffix
     from fontbakery.constants import STATIC_STYLE_NAMES, VARFONT_SUFFIXES
     from .shared_conditions import is_variable_font
     from fontTools.ttLib import TTFont
@@ -106,7 +111,7 @@ def canonical_stylename(font):
 
     filename = os.path.basename(font)
     basename = os.path.splitext(filename)[0]
-    s = suffix(font)
+    s = "-".join(basename.split("-")[1:])
     varfont = os.path.exists(font) and is_variable_font(TTFont(font))
     if (
         "-" in basename
@@ -176,7 +181,11 @@ def family_metadata(metadata_file):
     if not metadata_file:
         return
 
-    from google.protobuf import text_format
+    try:
+        from google.protobuf import text_format
+    except ImportError:
+        exit_with_install_instructions()
+
     from fontbakery.utils import get_FamilyProto_Message
 
     try:
@@ -188,8 +197,12 @@ def family_metadata(metadata_file):
 @condition
 def registered_vendor_ids():
     """Get a list of vendor IDs from Microsoft's website."""
-    from bs4 import BeautifulSoup
     from pkg_resources import resource_filename
+
+    try:
+        from bs4 import BeautifulSoup, NavigableString
+    except ImportError:
+        exit_with_install_instructions()
 
     registered_vendor_ids = {}
     CACHED = resource_filename(
@@ -209,8 +222,11 @@ def registered_vendor_ids():
 
     for section_id in IDs:
         section = soup.find("h2", {"id": section_id})
+        if not section:
+            continue
+
         table = section.find_next_sibling("table")
-        if not table:
+        if not table or isinstance(table, NavigableString):
             continue
 
         # print ("table: '{}'".format(table))
@@ -220,7 +236,7 @@ def registered_vendor_ids():
             if not cells:
                 continue
 
-            labels = [label for label in cells[1].stripped_strings]
+            labels = list(cells[1].stripped_strings)
 
             # pad the code to make sure it is a 4 char string,
             # otherwise eg "CF  " will not be matched to "CF"
@@ -242,9 +258,9 @@ def git_rootdir(family_dir):
 
     original_dir = os.getcwd()
     root_dir = None
-    try:
-        import subprocess
+    import subprocess
 
+    try:
         os.chdir(family_dir)
         git_cmd = ["git", "rev-parse", "--show-toplevel"]
         git_output = subprocess.check_output(git_cmd, stderr=subprocess.STDOUT)
@@ -269,8 +285,8 @@ def licenses(family_directory):
 
     for directory in search_paths:
         if directory:
-            for license in ["OFL.txt", "LICENSE.txt"]:
-                license_path = os.path.join(directory, license)
+            for license_filename in ["OFL.txt", "LICENSE.txt"]:
+                license_path = os.path.join(directory, license_filename)
                 if os.path.exists(license_path):
                     found.append(license_path)
     return found
@@ -279,7 +295,7 @@ def licenses(family_directory):
 @condition
 def license_contents(license_path):
     if license_path:
-        return open(license_path).read()
+        return open(license_path, encoding="utf-8").read().replace(" \n", "\n")
 
 
 @condition
@@ -293,15 +309,15 @@ def license_path(licenses):
 
 
 @condition
-def license(license_path):
+def license_filename(license_path):
     """Get license filename."""
     if license_path:
         return os.path.basename(license_path)
 
 
 @condition
-def is_ofl(license):
-    return license and "OFL" in license
+def is_ofl(license_filename):
+    return license_filename and "OFL" in license_filename
 
 
 @condition
@@ -320,7 +336,8 @@ def familyname(font):
 @condition
 def hinting_stats(font):
     """
-    Return file size differences for a hinted font compared to an dehinted version of same file
+    Return file size differences for a hinted font compared to an dehinted version
+    of same file
     """
     from io import BytesIO
     from dehinter.font import dehint
@@ -370,7 +387,10 @@ def hinting_stats(font):
 
 
 @condition
-def listed_on_gfonts_api(familyname, config):
+def listed_on_gfonts_api(familyname, config, network):
+    if not network:
+        return
+
     if not familyname:
         return False
 
@@ -381,7 +401,7 @@ def listed_on_gfonts_api(familyname, config):
     # to find it in the GFonts metadata:
     from_camelcased_name = split_camel_case(familyname)
 
-    for item in production_metadata(config)["familyMetadataList"]:
+    for item in production_metadata(config, network)["familyMetadataList"]:
         if item["family"] == familyname or item["family"] == from_camelcased_name:
             return True
 
@@ -442,7 +462,7 @@ def rfn_exception(familyname):
 
     rfn_exceptions_txt = "data/googlefonts/reserved_font_name_exceptions.txt"
     filename = resource_filename("fontbakery", rfn_exceptions_txt)
-    for exception in open(filename, "r").readlines():
+    for exception in open(filename, "r", encoding="utf-8").readlines():
         exception = exception.split("#")[0].strip()
         exception = exception.replace(" ", "")
         if exception == "":
@@ -453,10 +473,12 @@ def rfn_exception(familyname):
 
 
 @condition
-def remote_styles(familyname_with_spaces, config):
+def remote_styles(familyname_with_spaces, config, network):
     """Get a dictionary of TTFont objects of all font files of
     a given family as currently hosted at Google Fonts.
     """
+    if not network:
+        return
 
     def download_family_from_Google_Fonts(familyname):
         """Return a zipfile containing a font family hosted on fonts.google.com"""
@@ -479,7 +501,7 @@ def remote_styles(familyname_with_spaces, config):
                 fonts.append([file_name, TTFont(file_obj)])
         return fonts
 
-    if not listed_on_gfonts_api(familyname_with_spaces, config):
+    if not listed_on_gfonts_api(familyname_with_spaces, config, network):
         return None
 
     remote_fonts_zip = download_family_from_Google_Fonts(familyname_with_spaces)
@@ -548,11 +570,11 @@ def api_gfonts_ttFont(style, remote_styles):
 
 
 @condition
-def github_gfonts_ttFont(ttFont, license):
+def github_gfonts_ttFont(ttFont, license_filename, network):
     """Get a TTFont object of a font downloaded
     from Google Fonts git repository.
     """
-    if not license:
+    if not license_filename or not network:
         return None
 
     from fontbakery.utils import download_file
@@ -561,10 +583,10 @@ def github_gfonts_ttFont(ttFont, license):
 
     LICENSE_DIRECTORY = {"OFL.txt": "ofl", "UFL.txt": "ufl", "LICENSE.txt": "apache"}
     filename = os.path.basename(ttFont.reader.file.name)
-    familyname = filename.split("-")[0].lower()
+    familyname = filename.split("-")[0].split("[")[0].lower()
     url = (
         f"https://github.com/google/fonts/raw/main"
-        f"/{LICENSE_DIRECTORY[license]}/{familyname}/{filename}"
+        f"/{LICENSE_DIRECTORY[license_filename]}/{familyname}/{filename}"
     )
     try:
         fontfile = download_file(url)
@@ -575,12 +597,12 @@ def github_gfonts_ttFont(ttFont, license):
 
 
 @condition
-def github_gfonts_description(ttFont, license):
+def github_gfonts_description(ttFont, license_filename, network):
     """Get the contents of the DESCRIPTION.en_us.html file
     from the google/fonts github repository corresponding
     to a given ttFont.
     """
-    if not license:
+    if not license_filename or not network:
         return None
 
     from fontbakery.utils import download_file
@@ -591,7 +613,7 @@ def github_gfonts_description(ttFont, license):
     familyname = filename.split("-")[0].lower()
     url = (
         f"https://github.com/google/fonts/raw/main"
-        f"/{LICENSE_DIRECTORY[license]}/{familyname}/DESCRIPTION.en_us.html"
+        f"/{LICENSE_DIRECTORY[license_filename]}/{familyname}/DESCRIPTION.en_us.html"
     )
     try:
         descfile = download_file(url)
@@ -622,7 +644,7 @@ def familyname_with_spaces(familyname):
         MountainsofChristmas which would need to
         have the "of" split apart from "Mountains".
 
-        See also: https://github.com/googlefonts/fontbakery/issues/1489
+        See also: https://github.com/fonttools/fontbakery/issues/1489
         "Failure to handle font family with 3 words in it"
         """
         # TODO (M Foley) this case is insane. We should just fix the fonts
@@ -648,17 +670,19 @@ def gfonts_repo_structure(fonts):
     follows the files and directory structure
     typical of a font project hosted on
     the Google Fonts repo on GitHub?"""
-    from fontbakery.utils import get_absolute_path
 
     # FIXME: Improve this with more details
     #        about the expected structure.
-    abspath = get_absolute_path(fonts[0])
+    abspath = os.path.abspath(fonts[0])
     return abspath.split(os.path.sep)[-3] in ["ufl", "ofl", "apache"]
 
 
 @condition
-def production_metadata(config):
+def production_metadata(config, network):
     """Get the Google Fonts production metadata"""
+    if not network:
+        return
+
     import requests
 
     meta_url = "http://fonts.google.com/metadata/fonts"
@@ -677,7 +701,7 @@ def upstream_yaml(family_directory):
     fp = os.path.join(family_directory, "upstream.yaml")
     if not os.path.isfile(fp):
         return None
-    return yaml.load(open(fp, "r"), yaml.FullLoader)
+    return yaml.load(open(fp, "r", encoding="utf-8"), yaml.FullLoader)
 
 
 @condition
@@ -697,3 +721,35 @@ def expected_font_names(ttFont, ttFonts):
         build_fvar_instances(font_cp)
         build_stat(font_cp, siblings)
     return font_cp
+
+
+@condition
+def is_icon_font(ttFont, config):
+    return config.get("is_icon_font", False) or (
+        "OS/2" in ttFont
+        and ttFont["OS/2"].panose.bFamilyType == PANOSE_Family_Type.LATIN_SYMBOL
+    )
+
+
+def get_glyphsets_fulfilled(ttFont):
+    """Returns a dictionary of glyphsets that are fulfilled by the font,
+    and the percentage of glyphs in the font that are in the glyphset.
+    This is following the new glyphset definitions in glyphsets.definitions
+    """
+    from glyphsets.definitions import unicodes_per_glyphset, glyphset_definitions
+
+    res = {}
+    unicodes_in_font = set(ttFont.getBestCmap().keys())
+    for glyphset in glyphset_definitions:
+        unicodes_in_glyphset = unicodes_per_glyphset(glyphset)
+        if glyphset not in res:
+            res[glyphset] = {"has": [], "missing": [], "percentage": 0}
+        for unicode in unicodes_in_glyphset:
+            if unicode in unicodes_in_font:
+                res[glyphset]["has"].append(unicode)
+            else:
+                res[glyphset]["missing"].append(unicode)
+        res[glyphset]["percentage"] = len(res[glyphset]["has"]) / len(
+            unicodes_in_glyphset
+        )
+    return res

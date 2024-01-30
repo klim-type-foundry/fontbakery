@@ -4,9 +4,10 @@ import os
 import re
 import sys
 
-import git
+import git  # pip install GitPython
 
-CONTRIBUTORS_HEAD = """# This is the list of people who have contributed to this project,
+CONTRIBUTORS_HEAD = """
+# This is the list of people who have contributed to this project,
 # and includes those not listed in AUTHORS.txt because they are not
 # copyright authors. For example, company employees may be listed
 # here because their company holds the copyright and is listed there.
@@ -19,7 +20,7 @@ CONTRIBUTORS_HEAD = """# This is the list of people who have contributed to this
 
 """
 
-description = "Generate a CONTRIBUTORS.txt document from a repository's git history."
+description = "Generate a CONTRIBUTORS.txt file from a repository's git history."
 parser = argparse.ArgumentParser(description=description)
 parser.add_argument("folder", nargs=1, help="source folder which contains git commits")
 
@@ -37,13 +38,13 @@ def main():
 
     contrib_file = os.path.join(folder, "CONTRIBUTORS.txt")
     if os.path.isfile(contrib_file):
-        print("CONTRIBUTORS.txt already exists, adding '_copy' suffix.")
+        print("CONTRIBUTORS.txt file already exists, adding '_copy' suffix.")
         contrib_file = os.path.join(folder, "CONTRIBUTORS_copy.txt")
 
     with codecs.open(os.path.join(folder, contrib_file), "w", encoding="utf-8") as doc:
         doc.write(CONTRIBUTORS_HEAD)
         doc.write("\n".join(contributors))
-    print(("Finished generating CONTRIBUTORS.txts." " File saved at {}").format(folder))
+    print(f"Finished generating CONTRIBUTORS.txt. File saved at {folder}")
 
 
 if __name__ == "__main__":

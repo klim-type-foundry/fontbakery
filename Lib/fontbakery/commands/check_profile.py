@@ -2,29 +2,29 @@
 # usage:
 # $ fontbakery check-profile fontbakery.profiles.googlefonts -h
 import argparse
+from collections import OrderedDict
 from importlib import import_module
 import os
 import sys
-from collections import OrderedDict
 
 from fontbakery.checkrunner import (
-    distribute_generator,
     CheckRunner,
     get_module_from_file,
+)
+from fontbakery.status import (
     DEBUG,
-    INFO,
-    WARN,
     ERROR,
-    SKIP,
-    PASS,
+    FATAL,
     FAIL,
-    SECTIONSUMMARY,
+    INFO,
+    PASS,
+    SKIP,
+    WARN,
 )
 from fontbakery.configuration import Configuration
 from fontbakery.profile import Profile, get_module_profile
 
 from fontbakery.errors import ValueValidationError
-from fontbakery.multiproc import multiprocessing_runner
 from fontbakery.reporters.terminal import TerminalReporter
 from fontbakery.reporters.serialize import SerializeReporter
 from fontbakery.reporters.badge import BadgeReporter
@@ -35,10 +35,11 @@ from fontbakery.utils import get_theme
 
 
 log_levels = OrderedDict(
-    (s.name, s) for s in sorted((DEBUG, INFO, WARN, ERROR, SKIP, PASS, FAIL))
+    (s.name, s) for s in sorted((DEBUG, INFO, FATAL, WARN, ERROR, SKIP, PASS, FAIL))
 )
 
-DEFAULT_LOG_LEVEL = INFO
+DEFAULT_LOG_LEVEL = WARN
+DEFAULT_ERROR_CODE_ON = FAIL
 
 
 class AddReporterAction(argparse.Action):
@@ -61,7 +62,7 @@ def ArgumentParser(profile, profile_arg=True):
 
     if profile_arg:
         argument_parser.add_argument(
-            "profile", help="File/Module name," ' must define a fontbakery "profile".'
+            "profile", help="File/Module name, must define an fontbakery 'profile'."
         )
 
     values_keys = profile.setup_argparse(argument_parser)
@@ -77,7 +78,7 @@ def ArgumentParser(profile, profile_arg=True):
         "--checkid",
         action="append",
         help=(
-            "Explicit check-ids (or parts of their name) to be executed. "
+            "Explicit check-ids (or parts of their name) to be executed.\n"
             "Use this option multiple times to select multiple checks."
         ),
     )
@@ -87,7 +88,7 @@ def ArgumentParser(profile, profile_arg=True):
         "--exclude-checkid",
         action="append",
         help=(
-            "Exclude check-ids (or parts of their name) from execution. "
+            "Exclude check-ids (or parts of their name) from execution.\n"
             "Use this option multiple times to exclude multiple checks."
         ),
     )
@@ -105,7 +106,7 @@ def ArgumentParser(profile, profile_arg=True):
         dest="loglevels",
         const=PASS,
         action="append_const",
-        help="Shortcut for `-l PASS`.\n",
+        help="Shortcut for '-l PASS'.\n",
     )
 
     argument_parser.add_argument(
@@ -134,7 +135,7 @@ def ArgumentParser(profile, profile_arg=True):
     argument_parser.add_argument(
         "--succinct",
         action="store_true",
-        help="This is a slightly more compact and succint" " output layout.",
+        help="This is a slightly more compact and succint output layout.",
     )
 
     argument_parser.add_argument(
@@ -142,7 +143,7 @@ def ArgumentParser(profile, profile_arg=True):
         "--no-progress",
         default=False,
         action="store_true",
-        help="In a tty as stdout, don't" " render the progress indicators.",
+        help="Suppress the progress indicators in the console output.",
     )
 
     argument_parser.add_argument(
@@ -150,7 +151,7 @@ def ArgumentParser(profile, profile_arg=True):
         "--no-colors",
         default=False,
         action="store_true",
-        help="No colors for tty output.",
+        help="Suppress the coloring theme in the console output.",
     )
 
     argument_parser.add_argument(
@@ -196,6 +197,13 @@ def ArgumentParser(profile, profile_arg=True):
         default=10,
         type=int,
         help="Timeout (in seconds) for network operations.",
+    )
+
+    argument_parser.add_argument(
+        "--skip-network",
+        default=False,
+        action="store_true",
+        help="Skip network checks",
     )
 
     argument_parser.add_argument(
@@ -296,7 +304,7 @@ def ArgumentParser(profile, profile_arg=True):
     argument_parser.add_argument(
         "-J",
         "--jobs",
-        default=0,
+        default=1,
         type=positive_int,
         metavar="JOBS",
         dest="multiprocessing",
@@ -304,7 +312,7 @@ def ArgumentParser(profile, profile_arg=True):
         f"of worker processes. A sensible number is the cpu count of your\n"
         f"system, detected: {os.cpu_count()}."
         f" As an automated shortcut see -j/--auto-jobs.\n"
-        f"Use 0 to run in single-processing mode (default %(default)s).",
+        f"Use 1 to run in single-processing mode (default %(default)s).",
     )
     argument_parser.add_argument(
         "-j",
@@ -315,6 +323,17 @@ def ArgumentParser(profile, profile_arg=True):
         help="Use the auto detected cpu count (= %(const)s)"
         " as number of worker processes\n"
         "in multi-processing. This is equivalent to : `--jobs %(const)s`",
+    )
+    argument_parser.add_argument(
+        "-e",
+        "--error-code-on",
+        dest="error_code_on",
+        type=log_levels_get,
+        default=DEFAULT_ERROR_CODE_ON,
+        help="Threshold for emitting process error code 1. (Useful for"
+        " deciding the criteria for breaking a continuous integration job)\n"
+        f"One of: {valid_keys}.\n"
+        f"(default: {DEFAULT_ERROR_CODE_ON.name})",
     )
     return argument_parser, values_keys
 
@@ -373,10 +392,10 @@ def main(profile=None, values=None):
         sys.exit(1)
 
     theme = get_theme(args)
-    # the most verbose loglevel wins
-    loglevel = min(args.loglevels) if args.loglevels else DEFAULT_LOG_LEVEL
 
     if args.list_checks:
+        # the most verbose loglevel wins
+        loglevel = min(args.loglevels) if args.loglevels else DEFAULT_LOG_LEVEL
         list_checks(profile, theme, verbose=loglevel > DEFAULT_LOG_LEVEL)
 
     values_ = {}
@@ -414,58 +433,63 @@ def main(profile=None, values=None):
             explicit_checks=explicit_checks,
             exclude_checks=exclude_checks,
             full_lists=args.full_lists,
+            skip_network=args.skip_network,
         )
     )
-    runner_kwds = dict(values=values_, config=configuration)
+    runner_kwds = {"values": values_, "config": configuration}
     try:
-        runner = CheckRunner(profile, **runner_kwds)
+        runner = CheckRunner(profile, jobs=args.multiprocessing, **runner_kwds)
     except ValueValidationError as e:
         print(e)
         argument_parser.print_usage()
         sys.exit(1)
 
     is_async = args.multiprocessing != 0
+    if not args.loglevels:
+        args.loglevels = [
+            status
+            for status in log_levels.values()
+            if status.weight >= DEFAULT_LOG_LEVEL.weight
+        ]
 
     tr = TerminalReporter(
-        runner=runner,
         is_async=is_async,
-        print_progress=not args.no_progress,
+        runner=runner,
+        loglevels=args.loglevels,
         succinct=args.succinct,
-        check_threshold=loglevel,
-        log_threshold=args.loglevel_messages or loglevel,
-        theme=theme,
         collect_results_by=args.gather_by,
-        skip_status_report=None if args.show_sections else (SECTIONSUMMARY,),
+        theme=theme,
+        print_progress=not args.no_progress,
     )
     reporters = [tr]
+
     if "reporters" not in args:
         args.reporters = []
 
     for reporter_class, output_file in args.reporters:
         reporters.append(
             reporter_class(
-                loglevels=args.loglevels,
+                is_async=is_async,
                 runner=runner,
+                loglevels=args.loglevels,
                 succinct=args.succinct,
                 collect_results_by=args.gather_by,
                 output_file=output_file,
             )
         )
 
-    if args.multiprocessing == 0:
-        status_generator = runner.run()
-    else:
-        status_generator = multiprocessing_runner(
-            args.multiprocessing, runner, runner_kwds
-        )
-
-    distribute_generator(status_generator, [reporter.receive for reporter in reporters])
+    runner.run(reporters)
 
     for reporter in reporters:
         reporter.write()
 
     # Fail and error let the command fail
-    return 1 if tr.worst_check_status in (ERROR, FAIL) else 0
+    return (
+        1
+        if tr.worst_check_status is not None
+        and tr.worst_check_status.weight >= args.error_code_on.weight
+        else 0
+    )
 
 
 def list_checks(profile, theme, verbose=False):

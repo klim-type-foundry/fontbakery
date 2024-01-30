@@ -1,13 +1,11 @@
+from fontTools.ttLib import TTLibError
+
 from fontbakery.message import Message
 from fontbakery.callable import check
 from fontbakery.status import FAIL, PASS, WARN
 
 # used to inform get_module_profile whether and how to create a profile
-from fontbakery.fonts_profile import (  # NOQA pylint: disable=unused-import
-    profile_factory,
-)
-
-import fontTools.ttLib
+from fontbakery.fonts_profile import profile_factory  # noqa:F401 pylint:disable=W0611
 
 
 @check(
@@ -17,8 +15,8 @@ import fontTools.ttLib
 )
 def com_google_fonts_check_glyf_unused_data(ttFont):
     """Is there any unused data at the end of the glyf table?"""
+    expected_glyphs = len(ttFont.getGlyphOrder())
     try:
-        expected_glyphs = len(ttFont.getGlyphOrder())
         actual_glyphs = len(ttFont["glyf"].glyphs)
         diff = actual_glyphs - expected_glyphs
 
@@ -34,7 +32,7 @@ def com_google_fonts_check_glyf_unused_data(ttFont):
             yield PASS, "There is no unused data at the end of the glyf table."
         else:
             raise Exception("Bug: fontTools did not raise an expected exception.")
-    except fontTools.ttLib.TTLibError as error:
+    except TTLibError as error:
         if "not enough 'glyf' table data" in format(error):
             yield FAIL, Message(
                 "missing-data",
@@ -50,7 +48,7 @@ def com_google_fonts_check_glyf_unused_data(ttFont):
 @check(
     id="com.google.fonts/check/points_out_of_bounds",
     conditions=["is_ttf"],
-    proposal="https://github.com/googlefonts/fontbakery/issues/735",
+    proposal="https://github.com/fonttools/fontbakery/issues/735",
 )
 def com_google_fonts_check_points_out_of_bounds(ttFont, config):
     """Check for points out of bounds."""
@@ -103,10 +101,12 @@ def com_google_fonts_check_points_out_of_bounds(ttFont, config):
         which have the same x,y coordinates.
     """,
     conditions=["is_ttf"],
-    proposal="https://github.com/googlefonts/fontbakery/pull/2709",
+    proposal="https://github.com/fonttools/fontbakery/pull/2709",
 )
 def com_google_fonts_check_glyf_non_transformed_duplicate_components(ttFont, config):
-    """Check glyphs do not have duplicate components which have the same x,y coordinates."""
+    """
+    Check glyphs do not have duplicate components which have the same x,y coordinates.
+    """
     from fontbakery.utils import pretty_print_list
 
     failed = []

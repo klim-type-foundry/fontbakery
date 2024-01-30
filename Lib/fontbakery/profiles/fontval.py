@@ -1,13 +1,19 @@
 from pathlib import Path
 import tempfile
+
 from fontbakery.callable import check
+from fontbakery.fonts_profile import profile_factory
 from fontbakery.status import ERROR, FAIL, INFO, PASS, WARN
 from fontbakery.section import Section
 from fontbakery.message import Message
+from fontbakery.utils import exit_with_install_instructions
 
-# used to inform get_module_profile whether and how to create a profile
-from fontbakery.fonts_profile import profile_factory
 from .shared_conditions import is_cff, is_variable_font
+
+try:
+    import lxml.etree
+except ImportError:
+    exit_with_install_instructions()
 
 profile_imports = [".shared_conditions"]
 profile = profile_factory(
@@ -49,7 +55,7 @@ def com_google_fonts_check_fontvalidator(font, config):
         # More info at: googlei18n/fontmake#414
         "The table doesn't contain strings for Mac platform",
         "The PostScript string is not present for both required platforms",
-        # Font Bakery has got a native check for the xAvgCharWidth field
+        # FontBakery has got a native check for the xAvgCharWidth field
         # which is: com.google.fonts/check/xavgcharwidth
         "The xAvgCharWidth field does not equal the calculated value",
         # The optimal ordering suggested by FVal check W0020 seems to only be
@@ -58,9 +64,9 @@ def com_google_fonts_check_fontvalidator(font, config):
         # are most likely negligible, we're not going to bother users with
         # this check's table ordering requirements.
         # More info at:
-        # https://github.com/googlefonts/fontbakery/issues/2105
+        # https://github.com/fonttools/fontbakery/issues/2105
         "Tables are not in optimal order",
-        # Font Bakery has its own check for required/optional tables:
+        # FontBakery has its own check for required/optional tables:
         # com.google.fonts/check/required_tables
         "Recommended table is missing",
         # Check W5300 does not recognise some tags in use, e.g. stylistic sets
@@ -89,7 +95,7 @@ def com_google_fonts_check_fontvalidator(font, config):
         # of the font, and so will raise a warning in fonts that purposely do
         # not contain the euro.
         "Character code U+20AC, the euro character, is not mapped in cmap 3,1",
-        #  Fontbakery has its own check for this.
+        # FontBakery has its own check for this.
         "The unitsPerEm value is not a power of two",
         # Actually not a problem, and being produced by ufo2ft for years.
         "Intersecting components of composite glyph",
@@ -111,15 +117,15 @@ def com_google_fonts_check_fontvalidator(font, config):
         # contours because they are used to draw each portion
         # of variable glyph features.
         "Intersecting contours",
-        # DeltaFormat = 32768 (same as 0x8000) means VARIATION_INDEX,
-        # according to https://docs.microsoft.com/en-us/typography/opentype/spec/chapter2
+        # DeltaFormat = 32768 (same as 0x8000) means VARIATION_INDEX, according to
+        # https://docs.microsoft.com/en-us/typography/opentype/spec/chapter2
         # The FontVal problem description for this check (E5200) only mentions
         # the other values as possible valid ones. So apparently this means FontVal
-        # implementation is not up-to-date with more recent versions of the OpenType spec
-        # and that's why these spurious FAILs are being emitted.
+        # implementation is not up-to-date with more recent versions of the OpenType
+        # spec and that's why these spurious FAILs are being emitted.
         # That's good enough reason to mute it.
         # More info at:
-        # https://github.com/googlefonts/fontbakery/issues/2109
+        # https://github.com/fonttools/fontbakery/issues/2109
         "The device table's DeltaFormat value is invalid",
     ]
 
@@ -142,9 +148,9 @@ def com_google_fonts_check_fontvalidator(font, config):
         disabled_fval_checks = disabled_checks
 
     report_dir = tempfile.TemporaryDirectory(prefix="fontval-")
-    try:
-        import subprocess
+    import subprocess
 
+    try:
         fval_cmd = [
             "FontValidator",
             "-file",
@@ -205,9 +211,7 @@ def com_google_fonts_check_fontvalidator(font, config):
 
     grouped_msgs = {}
     with open(report_file, "rb") as xml_report:
-        from lxml import etree
-
-        doc = etree.fromstring(xml_report.read())
+        doc = lxml.etree.fromstring(xml_report.read())
         for report in doc.iterfind(".//Report"):
             msg = report.get("Message")
             details = report.get("Details")
@@ -230,7 +234,8 @@ def com_google_fonts_check_fontvalidator(font, config):
             else:
                 if details not in grouped_msgs[msg]["details"]:
                     # avoid cluttering the output with tons of identical reports
-                    # yield INFO, 'grouped_msgs[msg]["details"]: {}'.format(grouped_msgs[msg]["details"])
+                    # yield INFO, 'grouped_msgs[msg]["details"]: {}'.format(
+                    # grouped_msgs[msg]["details"])
                     grouped_msgs[msg]["details"].append(details)
 
     # ---------------------------

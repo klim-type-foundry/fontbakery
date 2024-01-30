@@ -6,7 +6,7 @@ import fontTools.ttLib
 from fontTools.ttLib import TTFont
 import fontTools.subset
 
-from fontbakery.checkrunner import INFO, WARN, FAIL, PASS
+from fontbakery.status import INFO, WARN, FAIL, PASS
 from fontbakery.codetesting import (
     assert_PASS,
     assert_SKIP,
@@ -60,7 +60,7 @@ def test_check_family_panose_proportion(mada_ttFonts):
     mada_ttFonts[0]["OS/2"].panose.bProportion = incorrect_value
 
     assert_results_contain(
-        check(mada_ttFonts), FAIL, "inconsistency", "with inconsistent family."
+        check(mada_ttFonts), WARN, "inconsistency", "with inconsistent family."
     )
 
 
@@ -78,7 +78,7 @@ def test_check_family_panose_familytype(mada_ttFonts):
     mada_ttFonts[0]["OS/2"].panose.bFamilyType = incorrect_value
 
     assert_results_contain(
-        check(mada_ttFonts), FAIL, "inconsistency", "with inconsistent family."
+        check(mada_ttFonts), WARN, "inconsistency", "with inconsistent family."
     )
 
 

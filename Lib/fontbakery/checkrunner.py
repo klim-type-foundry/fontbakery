@@ -1,5 +1,5 @@
 """
-Font Bakery CheckRunner is the driver of a font bakery suite of checks.
+FontBakery CheckRunner is the driver of an fontbakery suite of checks.
 
 
 Separation of Concerns Disclaimer:
@@ -12,49 +12,33 @@ Conditions) and MAYBE in *customized* reporters e.g. subclasses.
 
 """
 import os
-import types
-from collections import OrderedDict, Counter
+from collections import OrderedDict
 import importlib
 import inspect
-from typing import Dict, Any
+from typing import Dict, Any, Union, Tuple
 
-from fontbakery.callable import (
-    FontbakeryCallable,
-    FontBakeryCheck,
-    FontBakeryCondition,
-    FontBakeryExpectedValue,
+from fontbakery.result import (
+    CheckResult,
+    Subresult,
+    Identity,
 )
 from fontbakery.message import Message
-from fontbakery.profile import Profile, get_module_profile
 from fontbakery.utils import is_negated
 from fontbakery.errors import (
-    APIViolationError,
     CircularDependencyError,
     FailedCheckError,
     FailedConditionError,
-    FailedDependenciesError,
     MissingConditionError,
     SetupError,
     MissingValueError,
-    CircularAliasError,
-    NamespaceError,
     ValueValidationError,
 )
-from fontbakery.section import Section
 from fontbakery.status import (
     Status,
-    DEBUG,
+    ERROR,
+    FAIL,
     PASS,
     SKIP,
-    INFO,
-    WARN,
-    FAIL,
-    ERROR,
-    START,
-    STARTCHECK,
-    ENDCHECK,
-    SECTIONSUMMARY,
-    END,
 )
 
 
@@ -66,6 +50,7 @@ class CheckRunner:
         config,
         values_can_override_profile_names=True,
         use_cache=True,
+        jobs=0,
     ):
         # TODO: transform all iterables that are list like to tuples
         # to make sure that they won't change anymore.
@@ -77,6 +62,7 @@ class CheckRunner:
         self._explicit_checks = config["explicit_checks"]
         self._exclude_checks = config["exclude_checks"]
         self._iterargs = OrderedDict()
+        self._jobs = jobs
         for singular, plural in profile.iterargs.items():
             if plural in values:
                 values[plural] = tuple(values[plural])
@@ -104,10 +90,6 @@ class CheckRunner:
         self.use_cache = use_cache
         self._cache = {"conditions": {}, "order": None}
 
-    def clearCache(self):
-        # no need to clear 'order' cache IMO
-        self._cache["conditions"] = {}
-
     @property
     def iterargs(self):
         """uses the singular name as key"""
@@ -122,7 +104,7 @@ class CheckRunner:
         return self._profile
 
     @staticmethod
-    def _check_result(result):
+    def _check_result(result) -> Subresult:
         """Check that the check returned a well formed result:
         A tuple (<Status>, message)
 
@@ -136,30 +118,32 @@ class CheckRunner:
         """
         if not isinstance(result, tuple):
             msg = f"Result must be a tuple but it is {type(result)}."
-            return (FAIL, APIViolationError(msg, result))
+            return Subresult(ERROR, Message("api-violation", msg))
 
         if len(result) != 2:
             msg = f"Result must have 2 items, but it has {len(result)}."
-            return (FAIL, APIViolationError(msg, result))
+            return Subresult(ERROR, Message("api-violation", msg))
 
         status, message = result
         # Allow booleans, but there's no way to issue a WARNING
         if isinstance(status, bool):
             # normalize
             status = PASS if status else FAIL
-            result = (status, message)
 
         if not isinstance(status, Status):
             msg = (
                 f"Result item `status` must be an instance of Status,"
                 f" but it is {status} and its type is {type(status)}."
             )
-            return (FAIL, APIViolationError(msg, result))
+            return Subresult(FAIL, Message("api-violation", msg))
 
-        return result
+        if not isinstance(message, Message):
+            message = Message("", message)
 
-    def _exec_check(self, check: FontbakeryCallable, args: Dict[str, Any]):
-        """Yields check sub results.
+        return Subresult(status, message)
+
+    def _exec_check(self, identity: Identity, args: Dict[str, Any]):
+        """Returns check sub results.
 
         Each check result is a tuple of: (<Status>, mixed message)
         `status`: must be an instance of Status.
@@ -176,29 +160,27 @@ class CheckRunner:
             we can connect the check result with more in depth
             knowledge from the check definition.
         """
+        check = identity.check
         if check.configs:
             new_globals = {
                 varname: self.config.get(check.id, {}).get(varname)
                 for varname in check.configs
             }
             check.inject_globals(new_globals)
+        results = []
         try:
-            # A check can be either a normal function that returns one Status or a
-            # generator that yields one or more. The latter will return a generator
-            # object that we can detect with types.GeneratorType.
             result = check(**args)  # Might raise.
-
-            if isinstance(result, types.GeneratorType):
-                # Iterate over sub-results one-by-one, list(result) would abort on
-                # encountering the first exception.
-                for sub_result in result:  # Might raise.
-                    yield self._override_status(self._check_result(sub_result), check)
-                return  # Do not fall through to rest of method.
+            if inspect.isgenerator(result) or inspect.isgeneratorfunction(result):
+                results.extend(list(result))
+            else:
+                results = [result]
         except Exception as e:
-            error = FailedCheckError(e)
-            result = (ERROR, error)
+            results = [(ERROR, FailedCheckError(e))]
 
-        yield self._override_status(self._check_result(result), check)
+        return [
+            self._override_status(self._check_result(result), check)
+            for result in results
+        ]
 
     def _evaluate_condition(self, name, iterargs, path=None):
         if path is None:
@@ -295,7 +277,7 @@ class CheckRunner:
 
     def _get(self, name, iterargs, path, *args):
         iterargsDict = dict(iterargs)
-        has_fallback = bool(len(args))
+        has_fallback = len(args) > 0
         if has_fallback:
             fallback = args[0]
 
@@ -363,25 +345,30 @@ class CheckRunner:
                     raise
         return args
 
-    def _get_check_dependencies(self, check, iterargs):
+    def _get_check_dependencies(
+        self, identity: Identity
+    ) -> Union[
+        Tuple[None, dict],  # Either we got args
+        Tuple[Subresult, None],  # or we return a Skipped message
+    ]:
         unfulfilled_conditions = []
-        for condition in check.conditions:
+        for condition in identity.check.conditions:
             negate, name = is_negated(condition)
             if name in self._values:
                 # this is a handy way to set flags from the outside
                 err, val = None, self._values[name]
             else:
-                err, val = self._get_condition(name, iterargs)
+                err, val = self._get_condition(name, identity.iterargs)
             if negate:
                 val = not val
             if err:
-                status = (ERROR, err)
+                status = Subresult(ERROR, err)
                 return (status, None)
 
             # An annoying FutureWarning here (Python 3.8.3) on stderr:
-            #     "FutureWarning: The behavior of this method will change in future
-            #      versions. Use specific 'len(elem)' or 'elem is not None' test instead."
-            # Actually not shure how to tackle this, since val is very unspecific
+            #   "FutureWarning: The behavior of this method will change in future
+            #    versions. Use specific 'len(elem)' or 'elem is not None' test instead."
+            # Actually not sure how to tackle this, since val is very unspecific
             # here intentionally. Where is the documentation for the change?
             if val is None:
                 bool_val = False
@@ -398,100 +385,84 @@ class CheckRunner:
         if unfulfilled_conditions:
             # This will make the check neither pass nor fail
             comma_separated = ", ".join(unfulfilled_conditions)
-            status = (SKIP, f"Unfulfilled Conditions: {comma_separated}")
-            return (status, None)
+            return (
+                Subresult(
+                    SKIP,
+                    Message(
+                        "unfulfilled-conditions",
+                        f"Unfulfilled Conditions: {comma_separated}",
+                    ),
+                ),
+                None,
+            )
 
         try:
-            args = self._get_args(check, iterargs)
+            args = self._get_args(identity.check, identity.iterargs)
             # Run the generators now, so we can test if they're empty
             for k, v in args.items():
                 if inspect.isgenerator(v) or inspect.isgeneratorfunction(v):
                     args[k] = list(v)
 
             if all(x is None for x in args.values()):
-                status = (SKIP, "No applicable arguments")
+                status = Subresult(
+                    SKIP, Message("no-arguments", "No applicable arguments")
+                )
                 return (status, None)
             return None, args
         except Exception as error:
-            status = (ERROR, FailedDependenciesError(check, error))
+            status = Subresult(ERROR, Message("failed-dependencies", error))
             return (status, None)
 
-    def _run_check(self, check, iterargs):
-        summary_status = None
-        # A check is more than just a function, it carries
-        # a lot of meta-data for us, in this case we can use
-        # meta-data to learn how to call the check (via
-        # configuration or inspection, where inspection would be
-        # the default and configuration could be used to override
-        # inspection results).
-
+    def _run_check(self, identity: Identity):
         skipped = None
+        result = CheckResult(identity=identity)
+        # Does the profile want to skip this check?
         if self._profile.check_skip_filter:
             iterargsDict = {
-                key: self.get_iterarg(key, index) for key, index in iterargs
+                key: self.get_iterarg(key, index) for key, index in identity.iterargs
             }
             accepted, message = self._profile.check_skip_filter(
-                check.id, **iterargsDict
+                identity.check.id, **iterargsDict
             )
             if not accepted:
-                skipped = (SKIP, "Filtered: {}".format(message or "(no message)"))
+                result.append(
+                    Subresult(
+                        SKIP,
+                        Message(
+                            "filtered", "Filtered: {}".format(message or "(no message)")
+                        ),
+                    )
+                )
+                return result
 
+        # Do we skip this check because of dependencies?
         if not skipped:
-            skipped, args = self._get_check_dependencies(check, iterargs)
+            skipped, args = self._get_check_dependencies(identity)
 
-        # FIXME: check is not a message
-        # so, to use it as a message, it should have a "message-interface"
-        # TODO: describe generic "message-interface"
-        yield STARTCHECK, None
-        if skipped is not None:
-            summary_status = skipped[0]
-            # `skipped` is a normal result tuple (status, message)
-            # where `status` is either FAIL for unmet dependencies
-            # or SKIP for unmet conditions or ERROR. A status of SKIP is
-            # never a failed check.
-            # ERROR is either a missing dependency or a condition that raised
-            # an exception. This shouldn't happen when everyting is set up
-            # correctly.
-            yield skipped
-        else:
-            for sub_result in self._exec_check(check, args):
-                status, _ = sub_result
-                if summary_status is None or status >= summary_status:
-                    summary_status = status
-                yield sub_result
-            # The only reason to yield this is to make it testable
-            # that a check ran to its end, or, if we start to allow
-            # nestable subchecks. Otherwise, a STARTCHECK would end the
-            # previous check implicitly.
-            # We can also use it to display status updates to the user.
-        if summary_status is None:
-            summary_status = ERROR
-            yield ERROR, (f"The check {check} did not yield any status")
-        elif summary_status < PASS:
-            summary_status = ERROR
-            # got to yield it,so we can see it in the report
-            yield ERROR, (
-                f"The most significant status of {check}"
-                f" was only {summary_status} but"
-                f" the minimum is {PASS}"
-            )
+        if skipped:
+            result.append(Subresult(SKIP, skipped.message))
+            return result
 
-        yield ENDCHECK, summary_status
+        result.extend(self._exec_check(identity, args))
+        return result
 
     @property
-    def order(self):
+    def order(self) -> Tuple[Identity, ...]:
         order = self._cache.get("order", None)
-        if order is None:
-            order = []
-            # section, check, iterargs = identity
-            for identity in self._profile.execution_order(
-                self._iterargs,
-                custom_order=self._custom_order,
-                explicit_checks=self._explicit_checks,
-                exclude_checks=self._exclude_checks,
-            ):
-                order.append(identity)
-            self._cache["order"] = order = tuple(order)
+        if order is not None:
+            return order  # pytype:disable=bad-return-type
+
+        order = []
+        # section, check, iterargs = identity
+        for identity in self._profile.execution_order(
+            self._iterargs,
+            custom_order=self._custom_order,
+            explicit_checks=self._explicit_checks,
+            exclude_checks=self._exclude_checks,
+        ):
+            assert isinstance(identity, Identity)
+            order.append(identity)
+        self._cache["order"] = order = tuple(order)
         return order
 
     def check_order(self, order):
@@ -504,94 +475,45 @@ class CheckRunner:
                 raise ValueError(f"Order item {item} not found.")
         return order
 
-    def _check_protocol_generator(self, next_check_identity):
-        section, check, iterargs = next_check_identity
-        for status, message in self._run_check(check, iterargs):
-            yield status, message, (section, check, iterargs)
+    def run(self, reporters):
+        sections = OrderedDict()
 
-    def session_protocol_generator(self, order=None):
-        order = order if order is not None else self.order
-        yield from session_protocol_generator(self._check_protocol_generator, order)
+        # Tell all the reporters we're starting
+        for reporter in reporters:
+            reporter.start(self.order)
 
-    def run(self, order=None):
-        order = order if order is not None else self.order
-        session_gen = self.session_protocol_generator(order)
-        next_check_gen = iter(order)
-        yield from drive_session_protocol(session_gen, next_check_gen)
+        def run_a_check(identity):
+            result = self._run_check(identity)
+            for reporter in reporters:
+                reporter.receive_result(result)
 
-    def run_externally_controlled(self, receive_result_fn, next_check_gen, order=None):
-        order = order if order is not None else self.order
-        session_gen = self.session_protocol_generator(order)
-        for result in drive_session_protocol(session_gen, next_check_gen):
-            receive_result_fn(result)
+        import concurrent.futures
 
-    def _override_status(self, result, check):
+        if self._jobs > 1:
+            with concurrent.futures.ThreadPoolExecutor(
+                max_workers=self._jobs
+            ) as executor:
+                list(executor.map(run_a_check, self.order))
+        else:
+            for identity in self.order:
+                run_a_check(identity)
+
+        # Tell all the reporters we're done
+        for reporter in reporters:
+            reporter.end()
+
+    def _override_status(self, subresult: Subresult, check):
         # Potentially override the status based on the config file.
         # Replaces the status with config["overrides"][check.id][message.code]
-        status, message = result
         status_overrides = self.config.get("overrides", {}).get(check.id)
         if (
             not status_overrides
-            or not isinstance(message, Message)
-            or message.code not in status_overrides
+            or not isinstance(subresult.message, Message)
+            or subresult.message.code not in status_overrides
         ):
-            return result
-        return Status(status_overrides[message.code]), message
-
-
-def drive_session_protocol(session_gen, next_check_gen):
-    # can't send anything but None on first iteration
-    value = None
-    try:
-        while True:
-            result = session_gen.send(value)
-            yield result
-            value = None
-            if result[0] in (START, ENDCHECK):
-                # get the next check, if None protocol will wrap up
-                value = next(next_check_gen, None)
-    except StopIteration:
-        pass
-
-
-def session_protocol_generator(check_protocol_generator, order):
-    # init
-
-    # Could use self.order, but the truth is, we don't know.
-    # However, self.order still should contain each check_identity
-    # just to make sure we can actually run the check!
-    # Let's just assume that _run_check will fail otherwise...
-    sections = OrderedDict()
-    next_check_identity = yield START, order, (None, None, None)
-    while next_check_identity:
-        for event in check_protocol_generator(next_check_identity):
-            # send(check_identity) always after ENDCHECK
-            next_check_identity = yield event
-        # after _run_check the last status must be ENDCHECK
-        status, message, (section, check, iterargs) = event
-        event = None
-        assert status == ENDCHECK
-
-        # message is the summary_status of the check when status is ENDCHECK
-        section_key = str(section)
-        if section_key not in sections:
-            sections[section_key] = ([], Counter(), section)
-        section_order, section_summary, _ = sections[section_key]
-        section_order.append((check, iterargs))
-        # message is the summary_status of the check when status is ENDCHECK
-        section_summary[message.name] += 1
-
-    checkrun_summary = Counter()
-    for _, (section_order, section_summary, section) in sections.items():
-        yield SECTIONSUMMARY, (section_order, section_summary), (section, None, None)
-        checkrun_summary.update(section_summary)
-    yield END, checkrun_summary, (None, None, None)
-
-
-def distribute_generator(gen, targets_callbacks):
-    for item in gen:
-        for target in targets_callbacks:
-            target(item)
+            return subresult
+        subresult.status = Status(status_overrides[subresult.message.code])
+        return subresult
 
 
 FILE_MODULE_NAME_PREFIX = "."
@@ -600,21 +522,11 @@ FILE_MODULE_NAME_PREFIX = "."
 def get_module_from_file(filename):
     # filename = 'my/path/to/file.py'
     # module_name = 'file_module.file_py'
-    module_name = f"{FILE_MODULE_NAME_PREFIX}{format(os.path.basename(filename).replace('.', '_'))}"
+    module_name = f"{FILE_MODULE_NAME_PREFIX}{format(os.path.basename(filename).replace('.', '_'))}"  # noqa:E501 pylint:disable=C0301
     module_spec = importlib.util.spec_from_file_location(module_name, filename)
+    if not module_spec:
+        raise ValueError(f"Could not get module spec for file {filename}")
     module = importlib.util.module_from_spec(module_spec)
     module_spec.loader.exec_module(module)
     # assert module.__file__ == filename
     return module
-
-
-def _get_module_from_locator(module_locator):
-    if module_locator["name"].startswith(FILE_MODULE_NAME_PREFIX):
-        return get_module_from_file(module_locator["origin"])
-    # Fails with an appropriate ImportError.
-    return importlib.import_module(module_locator["name"], package=None)
-
-
-def get_profile_from_module_locator(module_locator):
-    module = _get_module_from_locator(module_locator)
-    return get_module_profile(module)

@@ -1,12 +1,10 @@
-from fontTools.ttLib import TTFont
-
 from fontbakery.codetesting import (
     assert_PASS,
     assert_results_contain,
     CheckTester,
     TEST_FILE,
 )
-from fontbakery.checkrunner import DEBUG, INFO, WARN, ERROR, SKIP, PASS, FAIL
+from fontbakery.status import DEBUG, INFO, WARN, ERROR, SKIP, PASS, FAIL
 from fontbakery.profiles import cff as cff_profile
 
 check_statuses = (ERROR, FAIL, SKIP, PASS, WARN, INFO, DEBUG)
@@ -27,14 +25,14 @@ def test_check_cff_call_depth():
         check(font),
         FAIL,
         "max-depth",
-        "- Subroutine call depth exceeded" ' maximum of 10 for glyph "D".',
+        '- Subroutine call depth exceeded maximum of 10 for glyph "D".',
     )
 
     assert_results_contain(
         check(font),
         FAIL,
         "max-depth",
-        "- Subroutine call depth exceeded" ' maximum of 10 for glyph "E".',
+        '- Subroutine call depth exceeded maximum of 10 for glyph "E".',
     )
 
     assert_results_contain(
@@ -60,14 +58,14 @@ def test_check_cff2_call_depth():
         check(font),
         FAIL,
         "max-depth",
-        "Subroutine call depth exceeded" ' maximum of 10 for glyph "D".',
+        'Subroutine call depth exceeded maximum of 10 for glyph "D".',
     )
 
     assert_results_contain(
         check(font),
         FAIL,
         "max-depth",
-        "Subroutine call depth exceeded" ' maximum of 10 for glyph "E".',
+        'Subroutine call depth exceeded maximum of 10 for glyph "E".',
     )
 
     assert_results_contain(
@@ -96,5 +94,8 @@ def test_check_cff_deprecated_operators():
         check(font),
         FAIL,
         "deprecated-operation-endchar-seac",
-        'Glyph "Agrave" has deprecated use of "endchar" operator to build accented characters (seac).',
+        (
+            'Glyph "Agrave" has deprecated use of "endchar" operator'
+            " to build accented characters (seac)."
+        ),
     )
