@@ -32,5 +32,5 @@ class HtmlAppReporter(HTMLReporter):
         )
         # Write JSON data to global JS variable, followed by the HTML markup
         json_data_string = json.dumps(self.getdoc(), sort_keys=True)
-        with open(html_path) as f:
+        with open(html_path, encoding="utf-8") as f:
             return f"""<script>window.fontBakeryData = {json_data_string};</script>\n{f.read()}"""
