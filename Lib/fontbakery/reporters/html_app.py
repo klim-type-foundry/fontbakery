@@ -2,8 +2,16 @@ import os
 import json
 from datetime import datetime
 from fontbakery.reporters.html import HTMLReporter
+from fontbakery.errors import FontBakeryRunnerError
 
 PRODUCTION_JS = True
+
+
+class HtmlAppJsonEncoder(json.JSONEncoder):
+    def default(self, o):
+        if issubclass(o, FontBakeryRunnerError):
+            return str(o)
+        return super().default(o)
 
 
 class HtmlAppReporter(HTMLReporter):
@@ -33,7 +41,7 @@ class HtmlAppReporter(HTMLReporter):
         # Write JSON data to global JS variable, followed by the HTML markup
         doc = self.getdoc()
         try:
-            json_data_string = json.dumps(doc, sort_keys=True)
+            json_data_string = json.dumps(doc, cls=HtmlAppJsonEncoder, sort_keys=True)
         except TypeError as e:
             line = (
                 "\n\n------------------------------------------------------------\n\n"
