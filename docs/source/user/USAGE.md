@@ -53,7 +53,7 @@ This is the command used by foundries checking their projects for Google Fonts
 
 
 
-It runs the checks that we use in the [`profiles/googlefonts.py` Python script](https://github.com/googlefonts/fontbakery/blob/main/Lib/fontbakery/profiles/googlefonts.py)
+It runs the checks that we use in the [`profiles/googlefonts.py` Python script](https://github.com/fonttools/fontbakery/blob/main/Lib/fontbakery/profiles/googlefonts.py)
 
 To run the checks on some fonts:
 
@@ -209,7 +209,13 @@ overrides:
     empty: FAIL
 ```
 
-Individual checks and profiles may give semantics to additional configuration values; the whole configuration file is passed to checks which request access to it.
+Individual checks and profiles may give semantics to additional configuration values;
+the whole configuration file is passed to checks which request access to it.
+Currently supported values include:
+
+- `is_icon_font`: A boolean value stating whether the fonts provided are icon fonts.
+  (overriding a check on the PANOSE values of those fonts) Certain checks will be
+  skipped for icon fonts.
 
 #### Old Command Line Tools
 

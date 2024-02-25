@@ -3,9 +3,7 @@ from fontbakery.status import FAIL, PASS, WARN, INFO, SKIP
 from fontbakery.message import Message
 
 # used to inform get_module_profile whether and how to create a profile
-from fontbakery.fonts_profile import (  # NOQA pylint: disable=unused-import
-    profile_factory,
-)
+from fontbakery.fonts_profile import profile_factory  # noqa:F401 pylint:disable=W0611
 
 profile_imports = [
     (".shared_conditions", ("vmetrics",)),
@@ -37,7 +35,7 @@ def com_google_fonts_check_family_panose_proportion(ttFonts):
         )
 
     if not passed:
-        yield FAIL, Message(
+        yield WARN, Message(
             "inconsistency",
             "PANOSE proportion is not the same across this family."
             " In order to fix this, please make sure that"
@@ -73,7 +71,7 @@ def com_google_fonts_check_family_panose_familytype(ttFonts):
         )
 
     if not passed:
-        yield FAIL, Message(
+        yield WARN, Message(
             "inconsistency",
             "PANOSE family type is not the same across this family."
             " In order to fix this, please make sure that"
@@ -86,7 +84,6 @@ def com_google_fonts_check_family_panose_familytype(ttFonts):
 
 @check(
     id="com.google.fonts/check/xavgcharwidth",
-    conditions=["is_ttf"],
     proposal="legacy:check/034",
 )
 def com_google_fonts_check_xavgcharwidth(ttFont):
@@ -111,8 +108,9 @@ def com_google_fonts_check_xavgcharwidth(ttFont):
 
         width_sum = 0
         count = 0
-        for glyph_id in ttFont["glyf"].glyphs:  # At least .notdef must be present.
-            width = ttFont["hmtx"].metrics[glyph_id][0]
+        for width, _ in ttFont[
+            "hmtx"
+        ].metrics.values():  # At least .notdef must be present.
             # The OpenType spec doesn't exclude negative widths, but only positive
             # widths seems to be the assumption in the wild?
             if width > 0:
@@ -183,7 +181,7 @@ def com_google_fonts_check_xavgcharwidth(ttFont):
             f" may be a symptom of the slightly different"
             f" calculation of the xAvgCharWidth value in"
             f" font editors. There's further discussion on"
-            f" this at https://github.com/googlefonts/fontbakery"
+            f" this at https://github.com/fonttools/fontbakery"
             f"/issues/1622",
         )
     else:
@@ -200,7 +198,7 @@ def com_google_fonts_check_xavgcharwidth(ttFont):
         The bold and italic bits in OS/2.fsSelection must match the bold and italic
         bits in head.macStyle per the OpenType spec.
     """,
-    proposal="https://github.com/googlefonts/fontbakery/pull/2382",
+    proposal="https://github.com/fonttools/fontbakery/pull/2382",
 )
 def com_adobe_fonts_check_fsselection_matches_macstyle(ttFont):
     """Check if OS/2 fsSelection matches head macStyle bold and italic bits."""
@@ -252,7 +250,7 @@ def com_adobe_fonts_check_fsselection_matches_macstyle(ttFont):
         This four-way distinction should also be reflected in the OS/2.fsSelection
         field, using bits 0 and 5.
     """,
-    proposal="https://github.com/googlefonts/fontbakery/pull/2388",
+    proposal="https://github.com/fonttools/fontbakery/pull/2388",
 )
 def com_adobe_fonts_check_family_bold_italic_unique_for_nameid1(RIBBI_ttFonts):
     """Check that OS/2.fsSelection bold & italic settings are unique
@@ -262,7 +260,7 @@ def com_adobe_fonts_check_family_bold_italic_unique_for_nameid1(RIBBI_ttFonts):
     from fontbakery.constants import NameID, FsSelection
 
     failed = False
-    family_name_and_bold_italic = list()
+    family_name_and_bold_italic = []
     for ttFont in RIBBI_ttFonts:
         names_list = get_name_entry_strings(ttFont, NameID.FONT_FAMILY_NAME)
         # names_list will likely contain multiple entries, e.g. multiple copies
@@ -323,7 +321,7 @@ def com_adobe_fonts_check_family_bold_italic_unique_for_nameid1(RIBBI_ttFonts):
         So here we simply detect as a FAIL when a given font has no code page
         declared at all.
     """,
-    proposal="https://github.com/googlefonts/fontbakery/issues/2474",
+    proposal="https://github.com/fonttools/fontbakery/issues/2474",
 )
 def com_google_fonts_check_code_pages(ttFont):
     """Check code page character ranges"""
@@ -352,11 +350,11 @@ def com_google_fonts_check_code_pages(ttFont):
 @check(
     id="com.thetypefounders/check/vendor_id",
     rationale="""
-        When a font project's Vendor ID is specified explicitely on FontBakery's
+        When a font project's Vendor ID is specified explicitly on FontBakery's
         configuration file, all binaries must have a matching vendor identifier
         value in the OS/2 table.
     """,
-    proposal="https://github.com/googlefonts/fontbakery/pull/3941",
+    proposal="https://github.com/fonttools/fontbakery/pull/3941",
 )
 def com_thetypefounders_check_vendor_id(config, ttFont):
     """Checking OS/2 achVendID against configuration."""
@@ -394,9 +392,6 @@ def com_thetypefounders_check_vendor_id(config, ttFont):
 )
 def com_google_fonts_check_fsselection(ttFont, style):
     """Checking OS/2 fsSelection value."""
-    import logging
-
-    logging.warning(f"{ttFont}, {style}")
     from fontbakery.utils import check_bit_entry
     from fontbakery.constants import STATIC_STYLE_NAMES, RIBBI_STYLE_NAMES, FsSelection
 

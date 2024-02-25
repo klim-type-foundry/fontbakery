@@ -1,7 +1,7 @@
 from fontTools.ttLib import TTFont
 from fontTools.ttLib.tables._f_v_a_r import Axis
 
-from fontbakery.checkrunner import FAIL, WARN, SKIP
+from fontbakery.status import FAIL, WARN, SKIP
 from fontbakery.codetesting import (
     assert_PASS,
     assert_results_contain,
@@ -44,7 +44,7 @@ def test_check_varfont_regular_wght_coord():
     # The check should yield SKIP.
     ttFont = TTFont(TEST_FILE("BadGrades/BadGrades-VF.ttf"))
     msg = assert_results_contain(check(ttFont), SKIP, "unfulfilled-conditions")
-    assert msg == "Unfulfilled Conditions: has_wght_axis"
+    assert "Unfulfilled Conditions: has_wght_axis" in msg.message
 
     # Test with an italic variable font. The Italic instance must also be 400
     ttFont = TTFont(TEST_FILE("varfont/OpenSans-Italic[wdth,wght].ttf"))
@@ -54,7 +54,7 @@ def test_check_varfont_regular_wght_coord():
     # The test should be skipped due to an unfulfilled condition.
     ttFont = TTFont(TEST_FILE("source-sans-pro/TTF/SourceSansPro-Bold.ttf"))
     msg = assert_results_contain(check(ttFont), SKIP, "unfulfilled-conditions")
-    assert msg == "Unfulfilled Conditions: is_variable_font, has_wght_axis"
+    assert "Unfulfilled Conditions: is_variable_font, has_wght_axis" in msg.message
 
 
 def test_check_varfont_regular_wdth_coord():
@@ -90,7 +90,7 @@ def test_check_varfont_regular_wdth_coord():
     # The check should yield SKIP.
     ttFont = TTFont(TEST_FILE("source-sans-pro/VAR/SourceSansVariable-Italic.otf"))
     msg = assert_results_contain(check(ttFont), SKIP, "unfulfilled-conditions")
-    assert msg == "Unfulfilled Conditions: has_wdth_axis"
+    assert "Unfulfilled Conditions: has_wdth_axis" in msg.message
 
     # Test with an italic variable font. The Italic instance must also be 100
     ttFont = TTFont(TEST_FILE("varfont/OpenSans-Italic[wdth,wght].ttf"))
@@ -100,7 +100,7 @@ def test_check_varfont_regular_wdth_coord():
     # The test should be skipped due to an unfulfilled condition.
     ttFont = TTFont(TEST_FILE("source-sans-pro/TTF/SourceSansPro-Bold.ttf"))
     msg = assert_results_contain(check(ttFont), SKIP, "unfulfilled-conditions")
-    assert msg == "Unfulfilled Conditions: is_variable_font, has_wdth_axis"
+    assert "Unfulfilled Conditions: is_variable_font, has_wdth_axis" in msg.message
 
 
 def test_check_varfont_regular_slnt_coord():
@@ -145,13 +145,13 @@ def test_check_varfont_regular_slnt_coord():
     # The check should yield SKIP.
     ttFont = TTFont(TEST_FILE("source-sans-pro/VAR/SourceSansVariable-Italic.otf"))
     msg = assert_results_contain(check(ttFont), SKIP, "unfulfilled-conditions")
-    assert msg == "Unfulfilled Conditions: has_slnt_axis"
+    assert "Unfulfilled Conditions: has_slnt_axis" in msg.message
 
     # Now test with a static font.
     # The test should be skipped due to an unfulfilled condition.
     ttFont = TTFont(TEST_FILE("source-sans-pro/TTF/SourceSansPro-Bold.ttf"))
     msg = assert_results_contain(check(ttFont), SKIP, "unfulfilled-conditions")
-    assert msg == "Unfulfilled Conditions: is_variable_font, has_slnt_axis"
+    assert "Unfulfilled Conditions: is_variable_font, has_slnt_axis" in msg.message
 
 
 def test_check_varfont_regular_ital_coord():
@@ -196,13 +196,13 @@ def test_check_varfont_regular_ital_coord():
     # The check should yield SKIP.
     ttFont = TTFont(TEST_FILE("source-sans-pro/VAR/SourceSansVariable-Italic.otf"))
     msg = assert_results_contain(check(ttFont), SKIP, "unfulfilled-conditions")
-    assert msg == "Unfulfilled Conditions: has_ital_axis"
+    assert "Unfulfilled Conditions: has_ital_axis" in msg.message
 
     # Now test with a static font.
     # The test should be skipped due to an unfulfilled condition.
     ttFont = TTFont(TEST_FILE("source-sans-pro/TTF/SourceSansPro-It.ttf"))
     msg = assert_results_contain(check(ttFont), SKIP, "unfulfilled-conditions")
-    assert msg == "Unfulfilled Conditions: is_variable_font, has_ital_axis"
+    assert "Unfulfilled Conditions: is_variable_font, has_ital_axis" in msg.message
 
 
 def test_check_varfont_regular_opsz_coord():
@@ -255,25 +255,6 @@ def test_check_varfont_regular_opsz_coord():
     first_instance.subfamilyNameID = 259
     msg = assert_results_contain(check(ttFont), FAIL, "no-regular-instance")
     assert msg == ('"Regular" instance not present.')
-
-
-def test_check_varfont_bold_wght_coord():
-    """The variable font 'wght' (Weight) axis coordinate
-    must be 700 on the 'Bold' instance."""
-    check = CheckTester(
-        opentype_profile, "com.google.fonts/check/varfont/bold_wght_coord"
-    )
-
-    # Our reference varfont CabinVFBeta.ttf
-    # has a good Bold:wght coordinate
-    ttFont = TTFont("data/test/cabinvfbeta/CabinVFBeta.ttf")
-    assert_PASS(check(ttFont), "with a good Bold:wght coordinate...")
-
-    # We then change the value to ensure the problem is properly detected by the check:
-    ttFont["fvar"].instances[3].coordinates["wght"] = 600
-    assert_results_contain(
-        check(ttFont), FAIL, "wght-not-700", "with a bad Bold:wght coordinage (600)..."
-    )
 
 
 def test_check_varfont_wght_valid_range():
@@ -562,8 +543,8 @@ def test_check_varfont_valid_default_instance_nameids():
     msg = assert_PASS(check(ttFont_1))
     assert msg == "All default instance name strings are valid."
 
-    # The font's 'LightCondensed' instance record has the same coordinates as the default
-    # instance, and the record's string matches the string of nameID 17.
+    # The font's 'LightCondensed' instance record has the same coordinates as the
+    # default instance, and the record's string matches the string of nameID 17.
     ttFont_2 = TTFont(TEST_FILE("mutatorsans-vf/MutatorSans-VF.ttf"))
     msg = assert_PASS(check(ttFont_2))
     assert msg == "All default instance name strings are valid."
@@ -664,6 +645,10 @@ def test_check_varfont_same_size_instance_records():
     inst_3.postscriptNameID = 0xFFFF
     msg = assert_results_contain(check(ttFont), FAIL, "different-size-instance-records")
     assert msg == "Instance records don't all have the same size."
+
+    fvar_table.instances = []
+    msg = assert_results_contain(check(ttFont), SKIP, "no-instance-records")
+    assert msg == "Font has no instance records."
 
 
 def test_check_varfont_distinct_instance_records():

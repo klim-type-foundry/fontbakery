@@ -1,49 +1,41 @@
 import os
 import re
-
-from fontbakery.status import PASS, FAIL, WARN, INFO, SKIP
-from fontbakery.section import Section
-from fontbakery.callable import check, disable
-from fontbakery.message import Message
-from fontbakery.fonts_profile import profile_factory
-from fontbakery.profiles.opentype import OPENTYPE_PROFILE_CHECKS
-from fontbakery.profiles.outline import OUTLINE_PROFILE_CHECKS
-from fontbakery.profiles.shaping import SHAPING_PROFILE_CHECKS
-from fontbakery.profiles.ufo_sources import UFO_PROFILE_CHECKS
+from typing import List
 
 from packaging.version import VERSION_PATTERN
 
+from fontbakery.callable import check, disable
+from fontbakery.constants import PlatformID, WindowsEncodingID
+from fontbakery.fonts_profile import profile_factory
+from fontbakery.glyphdata import desired_glyph_data
+from fontbakery.message import Message
+from fontbakery.profiles.layout import feature_tags
+from fontbakery.profiles.opentype import OPENTYPE_PROFILE_CHECKS
+from fontbakery.section import Section
+from fontbakery.status import PASS, FAIL, WARN, INFO, SKIP
+from fontbakery.utils import (
+    bullet_list,
+    get_font_glyph_data,
+    get_glyph_name,
+    glyph_has_ink,
+    iterate_lookup_list_with_extensions,
+    pretty_print_list,
+)
+
 re_version = re.compile(r"^\s*" + VERSION_PATTERN + r"\s*$", re.VERBOSE | re.IGNORECASE)
 
-profile_imports = (
-    (".", ("shared_conditions", "opentype", "outline", "shaping", "ufo_sources")),
-)
+profile_imports = ((".", ("shared_conditions", "opentype")),)
 profile = profile_factory(default_section=Section("Universal"))
 
-THIRDPARTY_CHECKS = [
-    "com.google.fonts/check/ots",
-]
 
 SUPERFAMILY_CHECKS = [
     "com.google.fonts/check/superfamily/list",
     "com.google.fonts/check/superfamily/vertical_metrics",
 ]
 
-DESIGNSPACE_CHECKS = [
-    "com.google.fonts/check/designspace_has_sources",
-    "com.google.fonts/check/designspace_has_default_master",
-    "com.google.fonts/check/designspace_has_consistent_glyphset",
-    "com.google.fonts/check/designspace_has_consistent_codepoints",
-]
-
 UNIVERSAL_PROFILE_CHECKS = (
-    DESIGNSPACE_CHECKS
-    + OPENTYPE_PROFILE_CHECKS
-    + OUTLINE_PROFILE_CHECKS
-    + SHAPING_PROFILE_CHECKS
+    OPENTYPE_PROFILE_CHECKS
     + SUPERFAMILY_CHECKS
-    + THIRDPARTY_CHECKS
-    + UFO_PROFILE_CHECKS
     + [
         "com.google.fonts/check/name/trailing_spaces",
         "com.google.fonts/check/family/win_ascent_and_descent",
@@ -55,11 +47,11 @@ UNIVERSAL_PROFILE_CHECKS = (
         "com.google.fonts/check/whitespace_glyphs",
         "com.google.fonts/check/whitespace_glyphnames",
         "com.google.fonts/check/whitespace_ink",
+        "com.google.fonts/check/legacy_accents",
         "com.google.fonts/check/required_tables",
         "com.google.fonts/check/unwanted_tables",
         "com.google.fonts/check/valid_glyphnames",
         "com.google.fonts/check/unique_glyphnames",
-        #       'com.google.fonts/check/glyphnames_max_length',
         "com.google.fonts/check/family/vertical_metrics",
         "com.google.fonts/check/STAT_strings",
         "com.google.fonts/check/rupee",
@@ -68,9 +60,9 @@ UNIVERSAL_PROFILE_CHECKS = (
         "com.google.fonts/check/soft_hyphen",
         "com.google.fonts/check/cjk_chws_feature",
         "com.google.fonts/check/transformed_components",
-        "com.google.fonts/check/dotted_circle",
-        "com.google.fonts/check/soft_dotted",
         "com.google.fonts/check/gpos7",
+        # "com.google.fonts/check/caps_vertically_centered",  # Disabled: issue #4274
+        "com.google.fonts/check/ots",
         "com.adobe.fonts/check/freetype_rasterizer",
         "com.adobe.fonts/check/sfnt_version",
         "com.google.fonts/check/whitespace_widths",
@@ -78,13 +70,16 @@ UNIVERSAL_PROFILE_CHECKS = (
         "com.google.fonts/check/math_signs_width",
         "com.google.fonts/check/linegaps",
         "com.google.fonts/check/STAT_in_statics",
+        "com.google.fonts/check/alt_caron",
+        "com.google.fonts/check/arabic_spacing_symbols",
+        "com.google.fonts/check/arabic_high_hamza",
     ]
 )
 
 
 @check(
     id="com.google.fonts/check/name/trailing_spaces",
-    proposal="https://github.com/googlefonts/fontbakery/issues/2417",
+    proposal="https://github.com/fonttools/fontbakery/issues/2417",
 )
 def com_google_fonts_check_name_trailing_spaces(ttFont):
     """Name table records must not have trailing spaces."""
@@ -106,9 +101,8 @@ def com_google_fonts_check_name_trailing_spaces(ttFont):
                 shortened_str = shortened_str[:10] + "[...]" + shortened_str[-10:]
             yield FAIL, Message(
                 "trailing-space",
-                f"Name table record with key = {name_key} has"
-                f" trailing spaces that must be removed:"
-                f" '{shortened_str}'",
+                f"Name table record with key = {name_key} has trailing spaces"
+                f" that must be removed: '{shortened_str}'",
             )
     if not failed:
         yield PASS, ("No trailing spaces on name table entries.")
@@ -124,20 +118,35 @@ def com_google_fonts_check_name_trailing_spaces(ttFont):
         (https://github.com/RedHatBrand/Overpass/issues/33).
 
         If the font includes tall/deep writing systems such as Arabic or Devanagari,
-        the winAscent and winDescent can be greater than the yMax and abs(yMin)
-        to accommodate vowel marks.
+        the winAscent and winDescent can be greater than the yMax and absolute yMin
+        values to accommodate vowel marks.
 
-        When the win Metrics are significantly greater than the upm, the linespacing
+        When the 'win' Metrics are significantly greater than the UPM, the linespacing
         can appear too loose. To counteract this, enabling the OS/2 fsSelection
-        bit 7 (Use_Typo_Metrics), will force Windows to use the OS/2 typo values
+        bit 7 (Use_Typo_Metrics), will force Windows to use the OS/2 'typo' values
         instead. This means the font developer can control the linespacing with
-        the typo values, whilst avoiding clipping by setting the win values to values
-        greater than the yMax and abs(yMin).
+        the 'typo' values, whilst avoiding clipping by setting the 'win' values to
+        values greater than the yMax and absolute yMin.
     """,
     proposal="legacy:check/040",
 )
 def com_google_fonts_check_family_win_ascent_and_descent(ttFont, vmetrics):
     """Checking OS/2 usWinAscent & usWinDescent."""
+
+    # NOTE:
+    # This check works on a single font file as well as on a group of font files.
+    # Even though one of this check's inputs is 'ttFont' (whereas other family-wide
+    # checks use 'ttFonts') the other input parameter, 'vmetrics', will collect vertical
+    # metrics values for all the font files provided in the command line. This means
+    # that running the check may yield more or less results depending on the set of font
+    # files that is provided in the command line. This behaviour is NOT a bug.
+    # For example, compare the results of these two commands:
+    #   fontbakery check-universal -c ascent_and_descent data/test/mada/Mada-Regular.ttf
+    #   fontbakery check-universal -c ascent_and_descent data/test/mada/*.ttf
+    #
+    # The second command will yield more FAIL results for each font. This happens
+    # because the check does a family-wide validation of the vertical metrics, instead
+    # of a single font validation.
 
     if "OS/2" not in ttFont:
         yield FAIL, Message("lacks-OS/2", "Font file lacks OS/2 table")
@@ -155,36 +164,31 @@ def com_google_fonts_check_family_win_ascent_and_descent(ttFont, vmetrics):
         failed = True
         yield FAIL, Message(
             "ascent",
-            f"OS/2.usWinAscent value should be"
-            f" equal or greater than {y_max},"
+            f"OS/2.usWinAscent value should be equal or greater than {y_max},"
             f" but got {win_ascent} instead",
         )
     if win_ascent > y_max * 2:
         failed = True
         yield FAIL, Message(
             "ascent",
-            f"OS/2.usWinAscent value"
-            f" {win_ascent} is too large."
-            f" It should be less than double the yMax."
-            f" Current yMax value is {y_max}",
+            f"OS/2.usWinAscent value {win_ascent} is too large."
+            f" It should be less than double the yMax. Current yMax value is {y_max}",
         )
     # OS/2 usWinDescent:
     if win_descent < abs(y_min):
         failed = True
         yield FAIL, Message(
             "descent",
-            f"OS/2.usWinDescent value should be equal or"
-            f" greater than {abs(y_min)}, but got"
-            f" {win_descent} instead.",
+            f"OS/2.usWinDescent value should be equal or greater than {abs(y_min)},"
+            f" but got {win_descent} instead",
         )
 
     if win_descent > abs(y_min) * 2:
         failed = True
         yield FAIL, Message(
             "descent",
-            f"OS/2.usWinDescent value"
-            f" {win_descent} is too large."
-            f" It should be less than double the yMin."
+            f"OS/2.usWinDescent value {win_descent} is too large."
+            " It should be less than double the yMin."
             f" Current absolute yMin value is {abs(y_min)}",
         )
     if not failed:
@@ -198,21 +202,12 @@ def com_google_fonts_check_family_win_ascent_and_descent(ttFont, vmetrics):
         OS/2 and hhea vertical metric values should match. This will produce the
         same linespacing on Mac, GNU+Linux and Windows.
 
-        - Mac OS X uses the hhea values.⏎
+        - Mac OS X uses the hhea values.
         - Windows uses OS/2 or Win, depending on the OS or fsSelection bit value.
 
         When OS/2 and hhea vertical metrics match, the same linespacing results on
-        macOS, GNU+Linux and Windows. Unfortunately as of 2018, Google Fonts
-        has released many fonts with vertical metrics that don't match in this way.
-        When we fix this issue in these existing families, we will create a visible
-        change in line/paragraph layout for either Windows or macOS users,
-        which will upset some of them.
-
-        But we have a duty to fix broken stuff, and inconsistent paragraph layout
-        is unacceptably broken when it is possible to avoid it.
-
-        If users complain and prefer the old broken version, they have the freedom
-        to take care of their own situation.
+        macOS, GNU+Linux and Windows. Note that fixing this issue in a previously
+        released font may cause reflow in user documents and unhappy users.
     """,
     proposal="legacy:check/042",
 )
@@ -238,22 +233,19 @@ def com_google_fonts_check_os2_metrics_match_hhea(ttFont):
         yield FAIL, Message(
             "ascender",
             f"OS/2 sTypoAscender ({ttFont['OS/2'].sTypoAscender})"
-            f" and hhea ascent ({ttFont['hhea'].ascent})"
-            f" must be equal.",
+            f" and hhea ascent ({ttFont['hhea'].ascent}) must be equal.",
         )
     elif ttFont["OS/2"].sTypoDescender != ttFont["hhea"].descent:
         yield FAIL, Message(
             "descender",
             f"OS/2 sTypoDescender ({ttFont['OS/2'].sTypoDescender})"
-            f" and hhea descent ({ttFont['hhea'].descent})"
-            f" must be equal.",
+            f" and hhea descent ({ttFont['hhea'].descent}) must be equal.",
         )
     elif ttFont["OS/2"].sTypoLineGap != ttFont["hhea"].lineGap:
         yield FAIL, Message(
             "lineGap",
             f"OS/2 sTypoLineGap ({ttFont['OS/2'].sTypoLineGap})"
-            f" and hhea lineGap ({ttFont['hhea'].lineGap})"
-            f" must be equal.",
+            f" and hhea lineGap ({ttFont['hhea'].lineGap}) must be equal.",
         )
     else:
         yield PASS, "OS/2.sTypoAscender/Descender values match hhea.ascent/descent."
@@ -284,12 +276,67 @@ def com_google_fonts_check_family_single_directory(fonts):
     else:
         yield FAIL, Message(
             "single-directory",
-            f"Not all fonts passed in the command line are in the"
-            f" same directory. This may lead to bad results as the tool"
-            f" will interpret all font files as belonging to a single"
-            f" font family. The detected directories are:"
-            f" {directories}",
+            "Not all fonts passed in the command line are in the"
+            " same directory. This may lead to bad results as the tool"
+            " will interpret all font files as belonging to a single"
+            f" font family. The detected directories are: {directories}",
         )
+
+
+@disable
+@check(
+    id="com.google.fonts/check/caps_vertically_centered",
+    rationale="""
+        This check suggests one possible approach to designing vertical metrics,
+        but can be ingnored if you follow a different approach.
+        In order to center text in buttons, lists, and grid systems
+        with minimal additional CSS work, the uppercase glyphs should be
+        vertically centered in the em box.
+        This check mainly applies to Latin, Greek, Cyrillic, and other similar scripts.
+        For non-latin scripts like Arabic, this check might not be applicable.
+        There is a detailed description of this subject at:
+        https://x.com/romanshamin_en/status/1562801657691672576
+    """,
+    proposal="https://github.com/fonttools/fontbakery/issues/4139",
+)
+def com_google_fonts_check_caps_vertically_centered(ttFont):
+    """Check if uppercase glyphs are vertically centered."""
+    from fontTools.pens.boundsPen import BoundsPen
+
+    SOME_UPPERCASE_GLYPHS = ["A", "B", "C", "D", "E", "H", "I", "M", "O", "S", "T", "X"]
+    glyphSet = ttFont.getGlyphSet()
+
+    for glyphname in SOME_UPPERCASE_GLYPHS:
+        if glyphname not in glyphSet.keys():
+            yield SKIP, Message(
+                "lacks-ascii",
+                "The implementation of this check relies on a few samples"
+                " of uppercase latin characteres that are not available in this font.",
+            )
+            return
+
+    highest_point_list = []
+    for glyphName in SOME_UPPERCASE_GLYPHS:
+        pen = BoundsPen(glyphSet)
+        glyphSet[glyphName].draw(pen)
+        highest_point = pen.bounds[3]
+        highest_point_list.append(highest_point)
+
+    upm = ttFont["head"].unitsPerEm
+    error_margin = upm * 0.05
+    average_cap_height = sum(highest_point_list) / len(highest_point_list)
+    descender = ttFont["hhea"].descent
+    top_margin = upm - average_cap_height
+    difference = abs(top_margin - abs(descender))
+    vertically_centered = difference <= error_margin
+
+    if not vertically_centered:
+        yield WARN, Message(
+            "vertical-metrics-not-centered",
+            "Uppercase glyphs are not vertically centered in the em box.",
+        )
+    else:
+        yield PASS, "Uppercase glyphs are vertically centered in the em box."
 
 
 @check(id="com.google.fonts/check/ots", proposal="legacy:check/036")
@@ -299,21 +346,18 @@ def com_google_fonts_check_ots(font):
 
     try:
         process = ots.sanitize(font, check=True, capture_output=True)
+
     except ots.CalledProcessError as e:
         yield FAIL, Message(
             "ots-sanitize-error",
             f"ots-sanitize returned an error code ({e.returncode})."
-            f" Output follows:\n"
-            f"\n"
-            f"{e.stderr.decode()}{e.stdout.decode()}",
+            f" Output follows:\n\n{e.stderr.decode()}{e.stdout.decode()}",
         )
     else:
         if process.stderr:
             yield WARN, Message(
                 "ots-sanitize-warn",
-                f"ots-sanitize passed this file,"
-                f" however warnings were printed:\n"
-                f"\n"
+                "ots-sanitize passed this file, however warnings were printed:\n\n"
                 f"{process.stderr.decode()}",
             )
         else:
@@ -325,6 +369,10 @@ def _parse_package_version(version_string: str) -> dict:
     Parses a Python package version string.
     """
     match = re_version.search(version_string)
+    if not match:
+        raise ValueError(
+            f"Python version '{version_string}' was not a valid version string"
+        )
     release = match.group("release")
     pre_rel = match.group("pre")
     post_rel = match.group("post")
@@ -360,7 +408,7 @@ def is_up_to_date(installed_str, latest_str):
             return False
 
     # All MAJOR.MINOR.PATCH integers are the same between 'installed' and 'latest';
-    # therefore Font Bakery is up-to-date, unless
+    # therefore FontBakery is up-to-date, unless
     # a) a pre-release is installed or FB is installed in development mode (in which
     #    case the version number installed must be higher), or
     # b) a post-release has been issued.
@@ -373,6 +421,7 @@ def is_up_to_date(installed_str, latest_str):
 
 @check(
     id="com.google.fonts/check/fontbakery_version",
+    conditions=["network"],
     rationale="""
         Running old versions of FontBakery can lead to a poor report which may
         include false WARNs and FAILs due do bugs, as well as outdated
@@ -381,7 +430,7 @@ def is_up_to_date(installed_str, latest_str):
         Older versions will also not report problems that are detected by new checks
         added to the tool in more recent updates.
     """,
-    proposal="https://github.com/googlefonts/fontbakery/issues/2093",
+    proposal="https://github.com/fonttools/fontbakery/issues/2093",
 )
 def com_google_fonts_check_fontbakery_version(font, config):
     """Do we have the latest version of FontBakery installed?"""
@@ -412,19 +461,24 @@ def com_google_fonts_check_fontbakery_version(font, config):
     if not is_up_to_date(installed, latest):
         return FAIL, Message(
             "outdated-fontbakery",
-            f"Current Font Bakery version is {installed},"
+            f"Current FontBakery version is {installed},"
             f" while a newer {latest} is already available."
             f" Please upgrade it with 'pip install -U fontbakery'",
         )
     else:
-        return PASS, "Font Bakery is up-to-date."
+        return PASS, "FontBakery is up-to-date."
 
 
 @check(
     id="com.google.fonts/check/mandatory_glyphs",
     rationale="""
         The OpenType specification v1.8.2 recommends that the first glyph is the
-        '.notdef' glyph without a codepoint assigned and with a drawing.
+        '.notdef' glyph without a codepoint assigned and with a drawing:
+
+        The .notdef glyph is very important for providing the user feedback
+        that a glyph is not found in the font. This glyph should not be left
+        without an outline as the user will only see what looks like a space
+        if a glyph is missing and not be aware of the active font’s limitation.
 
         https://docs.microsoft.com/en-us/typography/opentype/spec/recom#glyph-0-the-notdef-glyph
 
@@ -435,28 +489,38 @@ def com_google_fonts_check_fontbakery_version(font, config):
 )
 def com_google_fonts_check_mandatory_glyphs(ttFont):
     """Font contains '.notdef' as its first glyph?"""
-    from fontbakery.utils import glyph_has_ink
-
     passed = True
-    if ttFont.getGlyphOrder()[0] != ".notdef":
+    NOTDEF = ".notdef"
+    glyph_order = ttFont.getGlyphOrder()
+
+    if NOTDEF not in glyph_order or len(glyph_order) == 0:
+        yield WARN, Message(
+            "notdef-not-found", f"Font should contain the {NOTDEF!r} glyph."
+        )
+        # The font doesn't even have the notdef. There's no point in testing further.
+        return
+
+    if glyph_order[0] != NOTDEF:
         passed = False
         yield WARN, Message(
-            "first-glyph", "Font should contain the .notdef glyph as the first glyph."
+            "notdef-not-first", f"The {NOTDEF!r} should be the font's first glyph."
         )
 
-    if ".notdef" in ttFont.getBestCmap().values():
+    cmap = ttFont.getBestCmap()  # e.g. {65: 'A', 66: 'B', 67: 'C'} or None
+    if cmap and NOTDEF in cmap.values():
         passed = False
+        rev_cmap = {name: val for val, name in reversed(sorted(cmap.items()))}
         yield WARN, Message(
-            "codepoint",
-            f"Glyph '.notdef' should not have a Unicode"
-            f" codepoint value assigned, but got"
-            f" 0x{ttFont.getBestCmap().values()['.notdef']:04X}.",
+            "notdef-has-codepoint",
+            f"The {NOTDEF!r} glyph should not have a Unicode codepoint value assigned,"
+            f" but has 0x{rev_cmap[NOTDEF]:04X}.",
         )
 
-    if not glyph_has_ink(ttFont, ".notdef"):
+    if not glyph_has_ink(ttFont, NOTDEF):
         passed = False
-        yield WARN, Message(
-            "empty", "Glyph '.notdef' should contain a drawing, but it is empty."
+        yield FAIL, Message(
+            "notdef-is-blank",
+            f"The {NOTDEF!r} glyph should contain a drawing, but it is blank.",
         )
 
     if passed:
@@ -471,7 +535,7 @@ def com_google_fonts_check_whitespace_glyphs(ttFont, missing_whitespace_chars):
         failed = True
         yield FAIL, Message(
             f"missing-whitespace-glyph-{wsc}",
-            (f"Whitespace glyph missing for codepoint {wsc}."),
+            f"Whitespace glyph missing for codepoint {wsc}.",
         )
 
     if not failed:
@@ -489,8 +553,6 @@ def com_google_fonts_check_whitespace_glyphs(ttFont, missing_whitespace_chars):
 )
 def com_google_fonts_check_whitespace_glyphnames(ttFont):
     """Font has **proper** whitespace glyph names?"""
-    from fontbakery.utils import get_glyph_name
-
     # AGL recommended names, according to Adobe Glyph List for new fonts:
     AGL_RECOMMENDED_0020 = {"space"}
     AGL_RECOMMENDED_00A0 = {"uni00A0", "space"}
@@ -521,13 +583,13 @@ def com_google_fonts_check_whitespace_glyphnames(ttFont):
             passed = False
             yield WARN, Message(
                 "not-recommended-0020",
-                f'Glyph 0x0020 is called "{space}":' f' Change to "space"',
+                f'Glyph 0x0020 is called "{space}": Change to "space"',
             )
         else:
             passed = False
             yield FAIL, Message(
                 "non-compliant-0020",
-                f'Glyph 0x0020 is called "{space}":' f' Change to "space"',
+                f'Glyph 0x0020 is called "{space}": Change to "space"',
             )
 
         nbsp = get_glyph_name(ttFont, 0x00A0)
@@ -543,13 +605,13 @@ def com_google_fonts_check_whitespace_glyphnames(ttFont):
             passed = False
             yield WARN, Message(
                 "not-recommended-00a0",
-                f'Glyph 0x00A0 is called "{nbsp}":' f' Change to "uni00A0"',
+                f'Glyph 0x00A0 is called "{nbsp}": Change to "uni00A0"',
             )
         else:
             passed = False
             yield FAIL, Message(
                 "non-compliant-00a0",
-                f'Glyph 0x00A0 is called "{nbsp}":' f' Change to "uni00A0"',
+                f'Glyph 0x00A0 is called "{nbsp}": Change to "uni00A0"',
             )
 
         if passed:
@@ -559,8 +621,6 @@ def com_google_fonts_check_whitespace_glyphnames(ttFont):
 @check(id="com.google.fonts/check/whitespace_ink", proposal="legacy:check/049")
 def com_google_fonts_check_whitespace_ink(ttFont):
     """Whitespace glyphs have ink?"""
-    from fontbakery.utils import get_glyph_name, glyph_has_ink
-
     # This checks that certain glyphs are empty.
     # Some, but not all, are Unicode whitespace.
 
@@ -610,10 +670,232 @@ def com_google_fonts_check_whitespace_ink(ttFont):
             passed = False
             yield FAIL, Message(
                 "has-ink",
-                f'Glyph "{g}" has ink.' f" It needs to be replaced by an empty glyph.",
+                f"Glyph '{g}' has ink. It needs to be replaced by an empty glyph.",
             )
     if passed:
         yield PASS, "There is no whitespace glyph with ink."
+
+
+@check(
+    id="com.google.fonts/check/legacy_accents",
+    proposal=[
+        "https://github.com/googlefonts/fontbakery/issues/3959",
+        "https://github.com/googlefonts/fontbakery/issues/4310",
+    ],
+    rationale="""
+        Legacy accents should not be used in accented glyphs. The use of legacy
+        accents in accented glyphs breaks the mark to mark combining feature that
+        allows a font to stack diacritics over one glyph. Use combining marks
+        instead as a component in composite glyphs.
+
+        Legacy accents should not have anchors and should have non-zero width.
+        They are often used independently of a letter, either as a placeholder
+        for an expected combined mark+letter combination in MacOS, or separately.
+        For instance, U+00B4 (ACUTE ACCENT) is often mistakenly used as an apostrophe,
+        U+0060 (GRAVE ACCENT) is used in Markdown to notify code blocks,
+        and ^ is used as an exponential operator in maths.
+    """,
+    experimental="Since 2023/Oct/13",
+)
+def com_google_fonts_check_legacy_accents(ttFont):
+    """Check that legacy accents aren't used in composite glyphs."""
+
+    # code-points for all legacy chars
+    LEGACY_ACCENTS = {
+        0x00A8,  # DIAERESIS
+        0x02D9,  # DOT ABOVE
+        0x0060,  # GRAVE ACCENT
+        0x00B4,  # ACUTE ACCENT
+        0x02DD,  # DOUBLE ACUTE ACCENT
+        0x02C6,  # MODIFIER LETTER CIRCUMFLEX ACCENT
+        0x02C7,  # CARON
+        0x02D8,  # BREVE
+        0x02DA,  # RING ABOVE
+        0x02DC,  # SMALL TILDE
+        0x00AF,  # MACRON
+        0x00B8,  # CEDILLA
+        0x02DB,  # OGONEK
+    }
+
+    passed = True
+
+    glyphOrder = ttFont.getGlyphOrder()
+    reverseCmap = ttFont["cmap"].buildReversed()
+    hmtx = ttFont["hmtx"]
+
+    # Check whether the composites are using legacy accents.
+    if "glyf" in ttFont:
+        glyf = ttFont["glyf"]
+        for name in glyphOrder:
+            if not glyf[name].isComposite():
+                continue
+            for component in glyf[name].components:
+                codepoints = reverseCmap.get(component.glyphName, set())
+                if codepoints.intersection(LEGACY_ACCENTS):
+                    passed = False
+                    yield WARN, Message(
+                        "legacy-accents-component",
+                        f'Glyph "{name}" has a legacy accent component '
+                        f" ({component.glyphName}). "
+                        "It needs to be replaced by a combining mark.",
+                    )
+
+    # Check whether legacy accents have positive width.
+    for name in reverseCmap:
+        if reverseCmap[name].intersection(LEGACY_ACCENTS):
+            if hmtx[name][0] == 0:
+                passed = False
+                yield FAIL, Message(
+                    "legacy-accents-width",
+                    f'Width of legacy accent "{name}" is zero.',
+                )
+
+    # Check whether legacy accents appear in GDEF as marks.
+    # Not being marks in GDEF also typically means that they don't have anchors,
+    # as font compilers would have otherwise classified them as marks in GDEF.
+    if "GDEF" in ttFont and ttFont["GDEF"].table.GlyphClassDef:
+        class_def = ttFont["GDEF"].table.GlyphClassDef.classDefs
+        for name in reverseCmap:
+            if reverseCmap[name].intersection(LEGACY_ACCENTS):
+                if name in class_def and class_def[name] == 3:
+                    passed = False
+                    yield FAIL, Message(
+                        "legacy-accents-gdef",
+                        f'Legacy accent "{name}" is defined in GDEF'
+                        f" as a mark (class 3).",
+                    )
+
+    if passed:
+        yield PASS, "Looks good!"
+
+
+@check(
+    id="com.google.fonts/check/arabic_spacing_symbols",
+    proposal=[
+        "https://github.com/googlefonts/fontbakery/issues/4295",
+    ],
+    rationale="""
+        Unicode has a few spacing symbols representing Arabic dots and other marks,
+        but they are purposefully not classified as marks.
+
+        Many fonts mistakenly classify them as marks, making them unsuitable
+        for their original purpose as stand-alone symbols to used in pedagogical
+        contexts discussing Arabic consonantal marks.
+    """,
+    severity=4,
+)
+def com_google_fonts_check_arabic_spacing_symbols(ttFont):
+    """Check that Arabic spacing symbols U+FBB2–FBC1 aren't classified as marks."""
+
+    # code-points
+    ARABIC_SPACING_SYMBOLS = {
+        0xFBB2,  # Dot Above
+        0xFBB3,  # Dot Below
+        0xFBB4,  # Two Dots Above
+        0xFBB5,  # Two Dots Below
+        0xFBB6,  # Three Dots Above
+        0xFBB7,  # Three Dots Below
+        0xFBB8,  # Three Dots Pointing Downwards Above
+        0xFBB9,  # Three Dots Pointing Downwards Below
+        0xFBBA,  # Four Dots Above
+        0xFBBB,  # Four Dots Below
+        0xFBBC,  # Double Vertical Bar Below
+        0xFBBD,  # Two Dots Vertically Above
+        0xFBBE,  # Two Dots Vertically Below
+        0xFBBF,  # Ring
+        0xFBC0,  # Small Tah Above
+        0xFBC1,  # Small Tah Below
+        0xFBC2,  # Wasla Above
+    }
+
+    passed = True
+    if "GDEF" in ttFont and ttFont["GDEF"].table.GlyphClassDef:
+        class_def = ttFont["GDEF"].table.GlyphClassDef.classDefs
+        reverseCmap = ttFont["cmap"].buildReversed()
+        for name in reverseCmap:
+            if reverseCmap[name].intersection(ARABIC_SPACING_SYMBOLS):
+                if name in class_def and class_def[name] == 3:
+                    passed = False
+                    yield FAIL, Message(
+                        "mark-in-gdef",
+                        f'"{name}" is defined in GDEF as a mark (class 3).',
+                    )
+
+    if passed:
+        yield PASS, "Looks good!"
+
+
+@check(
+    id="com.google.fonts/check/arabic_high_hamza",
+    proposal=[
+        "https://github.com/googlefonts/fontbakery/issues/4290",
+    ],
+    rationale="""
+        Many fonts incorrectly treat ARABIC LETTER HIGH HAMZA (U+0675) as a variant of
+        ARABIC HAMZA ABOVE (U+0654) and make it a combining mark of the same size.
+
+        But U+0675 is a base letter and should be a variant of ARABIC LETTER HAMZA
+        (U+0621) but raised slightly above baseline.
+
+        Not doing so effectively makes the font useless for Jawi and
+        possibly Kazakh as well.
+    """,
+    experimental="Since 2023/Oct/20",
+    severity=4,
+)
+def com_google_fonts_check_arabic_high_hamza(ttFont):
+    """Check that glyph for U+0675 ARABIC LETTER HIGH HAMZA is not a mark."""
+    from fontTools.pens.areaPen import AreaPen
+
+    ARABIC_LETTER_HAMZA = 0x0621
+    ARABIC_LETTER_HIGH_HAMZA = 0x0675
+
+    glyph_set = ttFont.getGlyphSet()
+    if ARABIC_LETTER_HAMZA not in glyph_set or ARABIC_LETTER_HAMZA not in glyph_set:
+        yield SKIP, Message(
+            "glyphs-missing",
+            "This check will only run on fonts that have both glyphs U+0621 and U+0675",
+        )
+        return
+
+    passed = True
+
+    if "GDEF" in ttFont and ttFont["GDEF"].table.GlyphClassDef:
+        class_def = ttFont["GDEF"].table.GlyphClassDef.classDefs
+        reverseCmap = ttFont["cmap"].buildReversed()
+        glyphOrder = ttFont.getGlyphOrder()
+        for name in glyphOrder:
+            if ARABIC_LETTER_HIGH_HAMZA in reverseCmap.get(name, set()):
+                if name in class_def and class_def[name] == 3:
+                    passed = False
+                    yield FAIL, Message(
+                        "mark-in-gdef",
+                        f'"{name}" is defined in GDEF as a mark (class 3).',
+                    )
+
+    # Also validate the bounding box of the glyph and compare
+    # it to U+0621 expecting them to have roughly the same size
+    # (within a certain tolerance margin)
+    area_pen = AreaPen(glyph_set)
+
+    glyph_set[ARABIC_LETTER_HAMZA].draw(area_pen)
+    hamza_area = area_pen.value
+
+    area_pen.value = 0
+    glyph_set[ARABIC_LETTER_HIGH_HAMZA].draw(area_pen)
+    high_hamza_area = area_pen.value
+
+    if abs((high_hamza_area - hamza_area) / hamza_area) > 0.1:
+        passed = False
+        yield FAIL, Message(
+            "glyph-area",
+            "The arabic letter high hamza (U+0675) should have roughly"
+            " the same size the arabic letter hamza (U+0621),"
+            " but a different glyph outline area was detected.",
+        )
+
+    if passed:
+        yield PASS, "Looks good!"
 
 
 @check(
@@ -653,8 +935,6 @@ def com_google_fonts_check_whitespace_ink(ttFont):
 )
 def com_google_fonts_check_required_tables(ttFont, config, is_variable_font):
     """Font contains all required tables?"""
-    from fontbakery.utils import bullet_list
-
     REQUIRED_TABLES = ["cmap", "head", "hhea", "hmtx", "maxp", "name", "OS/2", "post"]
 
     OPTIONAL_TABLES = [
@@ -680,7 +960,7 @@ def com_google_fonts_check_required_tables(ttFont, config, is_variable_font):
         "kern",
     ]
 
-    # See https://github.com/googlefonts/fontbakery/issues/617
+    # See https://github.com/fonttools/fontbakery/issues/617
     #
     # We should collect the rationale behind the need for each of the
     # required tables above. Perhaps split it into individual checks
@@ -696,12 +976,12 @@ def com_google_fonts_check_required_tables(ttFont, config, is_variable_font):
     if optional_tables:
         yield INFO, Message(
             "optional-tables",
-            f"This font contains the following optional tables:\n\n"
+            "This font contains the following optional tables:\n\n"
             f"{bullet_list(config, optional_tables)}",
         )
 
     if is_variable_font:
-        # According to https://github.com/googlefonts/fontbakery/issues/1671
+        # According to https://github.com/fonttools/fontbakery/issues/1671
         # STAT table is required on WebKit on MacOS 10.12 for variable fonts.
         REQUIRED_TABLES.append("STAT")
 
@@ -721,7 +1001,7 @@ def com_google_fonts_check_required_tables(ttFont, config, is_variable_font):
     if missing_tables:
         yield FAIL, Message(
             "required-tables",
-            f"This font is missing the following required tables:\n\n"
+            "This font is missing the following required tables:\n\n"
             f"{bullet_list(config, missing_tables)}",
         )
     else:
@@ -763,10 +1043,9 @@ def com_google_fonts_check_unwanted_tables(ttFont):
     if unwanted_tables_found:
         yield FAIL, Message(
             "unwanted-tables",
-            f"The following unwanted font tables were found:\n\n"
-            f"{''.join(unwanted_tables_found)}\n"
-            f"They can be removed with the fix-unwanted-tables"
-            f" script provided by gftools.",
+            "The following unwanted font tables were found:\n\n"
+            f"{''.join(unwanted_tables_found)}\nThey can be removed with"
+            " the 'fix-unwanted-tables' script provided by gftools.",
         )
     else:
         yield PASS, "There are no unwanted tables."
@@ -779,7 +1058,7 @@ def com_google_fonts_check_unwanted_tables(ttFont):
         On the STAT table, the "Italic" keyword must not be used on AxisValues
         for variation axes other than 'ital'.
     """,
-    proposal="https://github.com/googlefonts/fontbakery/issues/2863",
+    proposal="https://github.com/fonttools/fontbakery/issues/2863",
 )
 def com_google_fonts_check_STAT_strings(ttFont):
     """Check correctness of STAT table strings"""
@@ -811,9 +1090,8 @@ def com_google_fonts_check_STAT_strings(ttFont):
     if bad_values:
         yield FAIL, Message(
             "bad-italic",
-            f"The following AxisValue entries on the STAT table"
-            f' should not contain "Italic":\n'
-            f" {sorted(bad_values)}",
+            "The following AxisValue entries on the STAT table"
+            f' should not contain "Italic":\n{sorted(bad_values)}',
         )
 
     if passed:
@@ -843,62 +1121,64 @@ def com_google_fonts_check_STAT_strings(ttFont):
     """,
     proposal=[
         "legacy:check/058",
-        "https://github.com/googlefonts/fontbakery/issues/2832",
-    ]
-    # issue #2832 increased the limit to 63 chars
+        # issue #2832 increased the limit to 63 chars
+        "https://github.com/fonttools/fontbakery/issues/2832",
+    ],
 )
 def com_google_fonts_check_valid_glyphnames(ttFont, config):
     """Glyph names are all valid?"""
-    from fontbakery.utils import pretty_print_list
-
     if (
-        ttFont.sfntVersion == b"\x00\x01\x00\x00"
+        ttFont.sfntVersion == "\x00\x01\x00\x00"
         and ttFont.get("post")
-        and ttFont["post"].formatType == 3.0
+        and ttFont["post"].formatType == 3
     ):
         yield SKIP, (
-            "TrueType fonts with a format 3.0 post table contain no glyph names."
+            "TrueType fonts with a format 3 post table contain no glyph names."
+        )
+    elif (
+        ttFont.sfntVersion == "OTTO"
+        and ttFont.get("CFF2")
+        and ttFont.get("post")
+        and ttFont["post"].formatType == 3
+    ):
+        yield SKIP, (
+            "OpenType-CFF2 fonts with a format 3 post table contain no glyph names."
         )
     else:
-        bad_names = []
-        warn_names = []
-        for _, glyphName in enumerate(ttFont.getGlyphOrder()):
+        bad_names = set()
+        warn_names = set()
+        for glyphName in ttFont.getGlyphOrder():
+            # The first two names are explicit exceptions in the glyph naming rules.
+            # The third was added in https://github.com/fonttools/fontbakery/pull/2003
             if glyphName.startswith((".null", ".notdef", ".ttfautohint")):
-                # These 2 names are explicit exceptions
-                # in the glyph naming rules
                 continue
             if not re.match(r"^(?![.0-9])[a-zA-Z._0-9]{1,63}$", glyphName):
-                bad_names.append(glyphName)
+                bad_names.add(glyphName)
             if len(glyphName) > 31 and len(glyphName) <= 63:
-                warn_names.append(glyphName)
+                warn_names.add(glyphName)
 
-        if len(bad_names) == 0:
-            if len(warn_names) == 0:
+        if not bad_names:
+            if not warn_names:
                 yield PASS, "Glyph names are all valid."
             else:
                 yield WARN, Message(
                     "legacy-long-names",
-                    f"The following glyph names may be too"
-                    f" long for some legacy systems which may"
-                    f" expect a maximum 31-char length limit:\n"
-                    f"{pretty_print_list(config, warn_names)}",
+                    "The following glyph names may be too long for some legacy systems"
+                    " which may expect a maximum 31-characters length limit:\n"
+                    f"{pretty_print_list(config, sorted(warn_names))}",
                 )
         else:
-            bad_names_list = pretty_print_list(config, bad_names)
+            bad_names_list = pretty_print_list(config, sorted(bad_names))
             yield FAIL, Message(
                 "found-invalid-names",
-                f"The following glyph names do not comply"
-                f" with naming conventions: {bad_names_list}\n"
-                f"\n"
-                f" A glyph name must be entirely comprised of characters"
-                f" from the following set:"
-                f" A-Z a-z 0-9 .(period) _(underscore)."
-                f" A glyph name must not start with a digit or period."
-                f" There are a few exceptions"
-                f' such as the special glyph ".notdef".'
-                f' The glyph names "twocents", "a1", and "_"'
-                f' are all valid, while "2cents"'
-                f' and ".twocents" are not.',
+                "The following glyph names do not comply"
+                f" with naming conventions: {bad_names_list}\n\n"
+                " A glyph name must be entirely comprised of characters"
+                " from the following set: A-Z a-z 0-9 .(period) _(underscore)."
+                " A glyph name must not start with a digit or period."
+                ' There are a few exceptions such as the special glyph ".notdef".'
+                ' The glyph names "twocents", "a1", and "_" are all valid,'
+                ' while "2cents" and ".twocents" are not.',
             )
 
 
@@ -913,63 +1193,46 @@ def com_google_fonts_check_valid_glyphnames(ttFont, config):
 def com_google_fonts_check_unique_glyphnames(ttFont):
     """Font contains unique glyph names?"""
     if (
-        ttFont.sfntVersion == b"\x00\x01\x00\x00"
+        ttFont.sfntVersion == "\x00\x01\x00\x00"
         and ttFont.get("post")
-        and ttFont["post"].formatType == 3.0
+        and ttFont["post"].formatType == 3
     ):
         yield SKIP, (
-            "TrueType fonts with a format 3.0 post table contain no glyph names."
+            "TrueType fonts with a format 3 post table contain no glyph names."
+        )
+    elif (
+        ttFont.sfntVersion == "OTTO"
+        and ttFont.get("CFF2")
+        and ttFont.get("post")
+        and ttFont["post"].formatType == 3
+    ):
+        yield SKIP, (
+            "OpenType-CFF2 fonts with a format 3 post table contain no glyph names."
         )
     else:
-        glyphs = []
-        duplicated_glyphIDs = []
-        for _, g in enumerate(ttFont.getGlyphOrder()):
-            glyphID = re.sub(r"#\w+", "", g)
-            if glyphID in glyphs:
-                duplicated_glyphIDs.append(glyphID)
+        glyph_names = set()
+        dup_glyph_names = set()
+        for gname in ttFont.getGlyphOrder():
+            # On font load, Fonttools adds #1, #2, ... suffixes to duplicate glyph names
+            glyph_name = re.sub(r"#\w+", "", gname)
+            if glyph_name in glyph_names:
+                dup_glyph_names.add(glyph_name)
             else:
-                glyphs.append(glyphID)
+                glyph_names.add(glyph_name)
 
-        if len(duplicated_glyphIDs) == 0:
-            yield PASS, "Font contains unique glyph names."
+        if not dup_glyph_names:
+            yield PASS, "Glyph names are all unique."
         else:
             yield FAIL, Message(
                 "duplicated-glyph-names",
-                "The following glyph names occur twice: " f"{duplicated_glyphIDs}",
+                f"These glyph names occur more than once: {sorted(dup_glyph_names)}",
             )
-
-
-@disable  # until we know the rationale.
-@check(
-    id="com.google.fonts/check/glyphnames_max_length",
-    proposal="https://github.com/googlefonts/fontbakery/issues/735",
-)
-def com_google_fonts_check_glyphnames_max_length(ttFont):
-    """Check that glyph names do not exceed max length."""
-    if (
-        ttFont.sfntVersion == b"\x00\x01\x00\x00"
-        and ttFont.get("post")
-        and ttFont["post"].formatType == 3.0
-    ):
-        yield PASS, (
-            "TrueType fonts with a format 3.0 post table contain no glyph names."
-        )
-    else:
-        failed = False
-        for name in ttFont.getGlyphOrder():
-            if len(name) > 109:
-                failed = True
-                yield FAIL, Message(
-                    "glyphname-too-long", f"Glyph name is too long: '{name}'"
-                )
-        if not failed:
-            yield PASS, "No glyph names exceed max allowed length."
 
 
 @check(
     id="com.google.fonts/check/ttx_roundtrip",
     conditions=["not vtt_talk_sources"],
-    proposal="https://github.com/googlefonts/fontbakery/issues/1763",
+    proposal="https://github.com/fonttools/fontbakery/issues/1763",
 )
 def com_google_fonts_check_ttx_roundtrip(font):
     """Checking with fontTools.ttx"""
@@ -1006,7 +1269,7 @@ def com_google_fonts_check_ttx_roundtrip(font):
         ttFont.saveXML(xml_file)
         export_error_msgs = logger.msgs
 
-        if len(export_error_msgs):
+        if export_error_msgs:
             failed = True
             yield INFO, (
                 "While converting TTF into an XML file,"
@@ -1022,9 +1285,8 @@ def com_google_fonts_check_ttx_roundtrip(font):
         if len(import_error_msgs):
             failed = True
             yield INFO, (
-                "While importing an XML file and converting"
-                " it back to TTF, ttx emited the messages"
-                " listed below."
+                "While importing an XML file and converting it back to TTF,"
+                " ttx emited the messages listed below."
             )
             for msg in import_error_msgs:
                 yield FAIL, msg.strip()
@@ -1039,10 +1301,9 @@ def com_google_fonts_check_ttx_roundtrip(font):
             " control characteres outside the accepted character range"
             " as defined in the XML spec. FontTools has got a bug which"
             " causes TTX to generate corrupt XML files in those cases."
-            " So, check the entries of the name table and remove any"
-            " control chars that you find there."
-            " The full ttx error message was:\n"
-            "======\n{}\n======".format(e)
+            " So, check the entries of the name table and remove any control"
+            " chars that you find there. The full ttx error message was:\n"
+            f"======\n{e}\n======"
         )
 
     if not failed:
@@ -1059,7 +1320,7 @@ def com_google_fonts_check_ttx_roundtrip(font):
         We want all fonts within a family to have the same vertical metrics so
         their line spacing is consistent across the family.
     """,
-    proposal="https://github.com/googlefonts/fontbakery/issues/1487",
+    proposal="https://github.com/fonttools/fontbakery/issues/1487",
 )
 def com_google_fonts_check_family_vertical_metrics(ttFonts):
     """Each font in a family must have the same set of vertical metrics values."""
@@ -1112,7 +1373,7 @@ def com_google_fonts_check_family_vertical_metrics(ttFonts):
                 s = ["{}: {}".format(k, v) for k, v in vmetrics[k].items()]
                 s = "\n".join(s)
                 yield FAIL, Message(
-                    f"{k}-mismatch", f"{k} is not the same across the family:\n" f"{s}"
+                    f"{k}-mismatch", f"{k} is not the same across the family:\n{s}"
                 )
         else:
             yield PASS, "Vertical metrics are the same across the family."
@@ -1127,7 +1388,7 @@ def com_google_fonts_check_family_vertical_metrics(ttFonts):
         Only the fontfiles in these directories will be considered in
         superfamily-level checks.
     """,
-    proposal="https://github.com/googlefonts/fontbakery/issues/1487",
+    proposal="https://github.com/fonttools/fontbakery/issues/1487",
 )
 def com_google_fonts_check_superfamily_list(superfamily):
     """List all superfamily filepaths"""
@@ -1146,10 +1407,13 @@ def com_google_fonts_check_superfamily_list(superfamily):
         com.google.fonts/check/family/vertical_metrics and for now it will only
         result in WARNs.
     """,
-    proposal="https://github.com/googlefonts/fontbakery/issues/1487",
+    proposal="https://github.com/fonttools/fontbakery/issues/1487",
 )
 def com_google_fonts_check_superfamily_vertical_metrics(superfamily_ttFonts):
-    """Each font in set of sibling families must have the same set of vertical metrics values."""
+    """
+    Each font in set of sibling families must have the same set of vertical metrics
+    values.
+    """
     if len(superfamily_ttFonts) < 2:
         yield SKIP, "Sibling families were not detected."
         return
@@ -1189,7 +1453,7 @@ def com_google_fonts_check_superfamily_vertical_metrics(superfamily_ttFonts):
             s = "\n".join(s)
             yield WARN, Message(
                 "superfamily-vertical-metrics",
-                f"{k} is not the same across the super-family:\n" f"{s}",
+                f"{k} is not the same across the super-family:\n{s}",
             )
     else:
         yield PASS, "Vertical metrics are the same across the super-family."
@@ -1203,123 +1467,17 @@ def com_google_fonts_check_superfamily_vertical_metrics(superfamily_ttFonts):
         “₹” (U+20B9) Indian Rupee Sign.
     """,
     conditions=["is_indic_font"],
-    proposal="https://github.com/googlefonts/fontbakery/issues/2967",
+    proposal="https://github.com/fonttools/fontbakery/issues/2967",
 )
 def com_google_fonts_check_rupee(ttFont):
     """Ensure indic fonts have the Indian Rupee Sign glyph."""
     if 0x20B9 not in ttFont["cmap"].getBestCmap().keys():
         yield FAIL, Message(
             "missing-rupee",
-            "Please add a glyph for Indian Rupee Sign “₹” at codepoint U+20B9.",
+            "Please add a glyph for Indian Rupee Sign (₹) at codepoint U+20B9.",
         )
     else:
         yield PASS, "Looks good!"
-
-
-@check(
-    id="com.google.fonts/check/designspace_has_sources",
-    rationale="""
-        This check parses a designspace file and tries to load the
-        source files specified.
-
-        This is meant to ensure that the file is not malformed,
-        can be properly parsed and does include valid source file references.
-    """,
-    proposal="https://github.com/googlefonts/fontbakery/pull/3168",
-)
-def com_google_fonts_check_designspace_has_sources(designspace_sources):
-    """See if we can actually load the source files."""
-    if not designspace_sources:
-        yield FAIL, Message("no-sources", "Unable to load source files.")
-    else:
-        yield PASS, "OK"
-
-
-@check(
-    id="com.google.fonts/check/designspace_has_default_master",
-    rationale="""
-        We expect that designspace files declare on of the masters as default.
-    """,
-    proposal="https://github.com/googlefonts/fontbakery/pull/3168",
-)
-def com_google_fonts_check_designspace_has_default_master(designSpace):
-    """Ensure a default master is defined."""
-    if not designSpace.findDefault():
-        yield FAIL, Message("not-found", "Unable to find a default master.")
-    else:
-        yield PASS, "We located a default master."
-
-
-@check(
-    id="com.google.fonts/check/designspace_has_consistent_glyphset",
-    rationale="""
-        This check ensures that non-default masters don't have glyphs
-        not present in the default one.
-    """,
-    conditions=["designspace_sources"],
-    proposal="https://github.com/googlefonts/fontbakery/pull/3168",
-)
-def com_google_fonts_check_designspace_has_consistent_glyphset(designSpace, config):
-    """Check consistency of glyphset in a designspace file."""
-    from fontbakery.utils import bullet_list
-
-    default_glyphset = set(designSpace.findDefault().font.keys())
-    failures = []
-    for source in designSpace.sources:
-        master_glyphset = set(source.font.keys())
-        outliers = master_glyphset - default_glyphset
-        if outliers:
-            outliers = ", ".join(list(outliers))
-            failures.append(
-                f"Source {source.filename} has glyphs not present"
-                f" in the default master: {outliers}"
-            )
-    if failures:
-        yield FAIL, Message(
-            "inconsistent-glyphset",
-            f"Glyphsets were not consistent:\n\n" f"{bullet_list(config, failures)}",
-        )
-    else:
-        yield PASS, "Glyphsets were consistent."
-
-
-@check(
-    id="com.google.fonts/check/designspace_has_consistent_codepoints",
-    rationale="""
-        This check ensures that Unicode assignments are consistent
-        across all sources specified in a designspace file.
-    """,
-    conditions=["designspace_sources"],
-    proposal="https://github.com/googlefonts/fontbakery/pull/3168",
-)
-def com_google_fonts_check_designspace_has_consistent_codepoints(designSpace, config):
-    """Check codepoints consistency in a designspace file."""
-    from fontbakery.utils import bullet_list
-
-    default_source = designSpace.findDefault()
-    default_unicodes = {g.name: g.unicode for g in default_source.font}
-    failures = []
-    for source in designSpace.sources:
-        for g in source.font:
-            if g.name not in default_unicodes:
-                # Previous test will cover this
-                continue
-
-            if g.unicode != default_unicodes[g.name]:
-                failures.append(
-                    f"Source {source.filename} has"
-                    f" {g.name}={g.unicode};"
-                    f" default master has"
-                    f" {g.name}={default_unicodes[g.name]}"
-                )
-    if failures:
-        yield FAIL, Message(
-            "inconsistent-codepoints",
-            f"Unicode assignments were not consistent:\n\n"
-            f"{bullet_list(config, failures)}",
-        )
-    else:
-        yield PASS, "Unicode assignments were consistent."
 
 
 @check(
@@ -1333,7 +1491,7 @@ def com_google_fonts_check_designspace_has_consistent_codepoints(designSpace, co
         Any glyphs not accessible by either of these means
         are redundant and serve only to increase the font's file size.
     """,
-    proposal="https://github.com/googlefonts/fontbakery/issues/3160",
+    proposal="https://github.com/fonttools/fontbakery/issues/3160",
 )
 def com_google_fonts_check_unreachable_glyphs(ttFont, config):
     """Check font contains no unreachable glyphs"""
@@ -1389,7 +1547,7 @@ def com_google_fonts_check_unreachable_glyphs(ttFont, config):
     all_glyphs -= set(ttFont.getBestCmap().values())
 
     # Exclude glyphs referenced by cmap format 14 variation sequences
-    # (as discussed at https://github.com/googlefonts/fontbakery/issues/3915):
+    # (as discussed at https://github.com/fonttools/fontbakery/issues/3915):
     for table in ttFont["cmap"].tables:
         if table.format == 14:
             for values in table.uvsDict.values():
@@ -1446,12 +1604,10 @@ def com_google_fonts_check_unreachable_glyphs(ttFont, config):
                 all_glyphs -= set(base_glyph.getComponentNames(ttFont["glyf"]))
 
     if all_glyphs:
-        from fontbakery.utils import bullet_list
-
         yield WARN, Message(
             "unreachable-glyphs",
-            f"The following glyphs could not be reached"
-            f" by codepoint or substitution rules:\n\n"
+            "The following glyphs could not be reached"
+            " by codepoint or substitution rules:\n\n"
             f"{bullet_list(config, sorted(all_glyphs))}\n",
         )
     else:
@@ -1489,9 +1645,6 @@ def com_google_fonts_check_contour_count(ttFont, config):
     In the future, additional glyph data can be included. A good addition would
     be the 'recommended' anchor counts for each glyph.
     """
-    from fontbakery.glyphdata import desired_glyph_data as glyph_data
-    from fontbakery.constants import PlatformID, WindowsEncodingID
-    from fontbakery.utils import bullet_list, get_font_glyph_data, pretty_print_list
 
     def in_PUA_range(codepoint):
         """
@@ -1511,7 +1664,7 @@ def com_google_fonts_check_contour_count(ttFont, config):
     # rearrange data structure:
     desired_glyph_data_by_codepoint = {}
     desired_glyph_data_by_glyphname = {}
-    for glyph in glyph_data:
+    for glyph in desired_glyph_data:
         desired_glyph_data_by_glyphname[glyph["name"]] = glyph
         # since the glyph in PUA ranges have unspecified meaning,
         # it doesnt make sense for us to have an expected contour cont for them
@@ -1585,33 +1738,46 @@ def com_google_fonts_check_contour_count(ttFont, config):
                 else:
                     return name
 
-            bad_glyphs_name = [
-                f"Glyph name: {_glyph_name(cmap, name)}\t"
-                f"Contours detected: {count}\t"
-                f"Expected: {pretty_print_list(config, expected, glue='or')}"
-                for name, count, expected in bad_glyphs
-            ]
-            bad_glyphs_name = bullet_list(config, bad_glyphs_name)
-            yield WARN, Message(
-                "contour-count",
-                f"This check inspects the glyph outlines and detects the"
-                f" total number of contours in each of them. The expected"
-                f" values are infered from the typical ammounts of"
-                f" contours observed in a large collection of reference"
-                f" font families. The divergences listed below may simply"
-                f" indicate a significantly different design on some of"
-                f" your glyphs. On the other hand, some of these may flag"
-                f" actual bugs in the font such as glyphs mapped to an"
-                f" incorrect codepoint. Please consider reviewing"
-                f" the design and codepoint assignment of these to make"
-                f" sure they are correct.\n"
-                f"\n"
-                f"The following glyphs do not have the recommended"
-                f" number of contours:\n"
-                f"\n"
-                f"{bad_glyphs_name}"
-                f"\n",
-            )
+            bad_glyphs_message = []
+            zero_contours_message = []
+
+            for name, count, expected in bad_glyphs:
+                if count == 0:
+                    zero_contours_message.append(
+                        f"Glyph name: {_glyph_name(cmap, name)}\t"
+                        f"Expected: {pretty_print_list(config, expected, glue=' or ')}"
+                    )
+                else:
+                    bad_glyphs_message.append(
+                        f"Glyph name: {_glyph_name(cmap, name)}\t"
+                        f"Contours detected: {count}\t"
+                        f"Expected: {pretty_print_list(config, expected, glue=' or ')}"
+                    )
+
+            if bad_glyphs_message:
+                bad_glyphs_message = bullet_list(config, bad_glyphs_message)
+                yield WARN, Message(
+                    "contour-count",
+                    "This check inspects the glyph outlines and detects the total"
+                    " number of contours in each of them. The expected values are"
+                    " infered from the typical ammounts of contours observed in a"
+                    " large collection of reference font families. The divergences"
+                    " listed below may simply indicate a significantly different"
+                    " design on some of your glyphs. On the other hand, some of these"
+                    " may flag actual bugs in the font such as glyphs mapped to an"
+                    " incorrect codepoint. Please consider reviewing the design and"
+                    " codepoint assignment of these to make sure they are correct.\n\n"
+                    "The following glyphs do not have the recommended number of"
+                    f" contours:\n\n{bad_glyphs_message}\n",
+                )
+
+            if zero_contours_message:
+                zero_contours_message = bullet_list(config, zero_contours_message)
+                yield FAIL, Message(
+                    "no-contour",
+                    "The following glyphs have no contours even though they were"
+                    f" expected to have some:\n\n{zero_contours_message}\n",
+                )
         else:
             yield PASS, "All glyphs have the recommended amount of contours"
 
@@ -1636,8 +1802,8 @@ def com_google_fonts_check_contour_count(ttFont, config):
         https://typedrawers.com/discussion/2046/special-dash-things-softhyphen-horizontalbar
     """,
     proposal=[
-        "https://github.com/googlefonts/fontbakery/issues/4046",
-        "https://github.com/googlefonts/fontbakery/issues/3486",
+        "https://github.com/fonttools/fontbakery/issues/4046",
+        "https://github.com/fonttools/fontbakery/issues/3486",
     ],
 )
 def com_google_fonts_check_soft_hyphen(ttFont):
@@ -1659,12 +1825,10 @@ def com_google_fonts_check_soft_hyphen(ttFont):
         The chws_tool utility (https://github.com/googlefonts/chws_tool) can be used
         to add these features automatically.
     """,
-    proposal="https://github.com/googlefonts/fontbakery/issues/3363",
+    proposal="https://github.com/fonttools/fontbakery/issues/3363",
 )
 def com_google_fonts_check_cjk_chws_feature(ttFont):
     """Does the font contain chws and vchw features?"""
-    from fontbakery.profiles.layout import feature_tags
-
     passed = True
     tags = feature_tags(ttFont)
     FEATURE_NOT_FOUND = (
@@ -1706,7 +1870,7 @@ def com_google_fonts_check_cjk_chws_feature(ttFont):
 
         --filter DecomposeTransformedComponentsFilter
     """,
-    proposal="https://github.com/googlefonts/fontbakery/issues/2011",
+    proposal="https://github.com/fonttools/fontbakery/issues/2011",
 )
 def com_google_fonts_check_transformed_components(ttFont, is_hinted):
     """Ensure component transforms do not perform scaling or rotation."""
@@ -1733,243 +1897,11 @@ def com_google_fonts_check_transformed_components(ttFont, is_hinted):
     if failures:
         yield FAIL, Message(
             "transformed-components",
-            f"The following glyphs had components with scaling or rotation\n"
-            f"or inverted outline direction:\n"
-            f"\n"
-            f"{failures}",
+            "The following glyphs had components with scaling or rotation\n"
+            f"or inverted outline direction:\n\n{failures}",
         )
     else:
         yield PASS, "No glyphs had components with scaling or rotation"
-
-
-@check(
-    id="com.google.fonts/check/dotted_circle",
-    conditions=["is_ttf"],
-    severity=3,
-    rationale="""
-        The dotted circle character (U+25CC) is inserted by shaping engines before
-        mark glyphs which do not have an associated base, especially in the context
-        of broken syllabic clusters.
-
-        For fonts containing combining marks, it is recommended that the dotted circle
-        character be included so that these isolated marks can be displayed properly;
-        for fonts supporting complex scripts, this should be considered mandatory.
-
-        Additionally, when a dotted circle glyph is present, it should be able to
-        display all marks correctly, meaning that it should contain anchors for all
-        attaching marks.
-    """,
-    proposal="https://github.com/googlefonts/fontbakery/issues/3600",
-)
-def com_google_fonts_check_dotted_circle(ttFont, config):
-    """Ensure dotted circle glyph is present and can attach marks."""
-    from fontbakery.utils import (
-        bullet_list,
-        is_complex_shaper_font,
-        iterate_lookup_list_with_extensions,
-    )
-
-    mark_glyphs = []
-    if (
-        "GDEF" in ttFont
-        and hasattr(ttFont["GDEF"].table, "GlyphClassDef")
-        and hasattr(ttFont["GDEF"].table.GlyphClassDef, "classDefs")
-    ):
-        mark_glyphs = [
-            k for k, v in ttFont["GDEF"].table.GlyphClassDef.classDefs.items() if v == 3
-        ]
-
-    # Only check for encoded
-    mark_glyphs = set(mark_glyphs) & set(ttFont.getBestCmap().values())
-    nonspacing_mark_glyphs = [g for g in mark_glyphs if ttFont["hmtx"][g][0] == 0]
-
-    if not nonspacing_mark_glyphs:
-        yield SKIP, "Font has no nonspacing mark glyphs."
-        return
-
-    if 0x25CC not in ttFont.getBestCmap():
-        # How bad is this?
-        if is_complex_shaper_font(ttFont):
-            yield FAIL, Message(
-                "missing-dotted-circle-complex",
-                "No dotted circle glyph present and font uses a complex shaper",
-            )
-        else:
-            yield WARN, Message(
-                "missing-dotted-circle", "No dotted circle glyph present"
-            )
-        return
-
-    # Check they all attach to dotted circle
-    # if they attach to something else
-    dotted_circle = ttFont.getBestCmap()[0x25CC]
-    attachments = {dotted_circle: []}
-    does_attach = {}
-
-    def find_mark_base(lookup, attachments):
-        if lookup.LookupType == 4:
-            # Assume all-to-all
-            for st in lookup.SubTable:
-                for base in st.BaseCoverage.glyphs:
-                    for mark in st.MarkCoverage.glyphs:
-                        attachments.setdefault(base, []).append(mark)
-                        does_attach[mark] = True
-
-    iterate_lookup_list_with_extensions(ttFont, "GPOS", find_mark_base, attachments)
-
-    unattached = []
-    for g in nonspacing_mark_glyphs:
-        if g in does_attach and g not in attachments[dotted_circle]:
-            unattached.append(g)
-
-    if unattached:
-        yield FAIL, Message(
-            "unattached-dotted-circle-marks",
-            f"The following glyphs could not be attached"
-            f" to the dotted circle glyph:\n\n"
-            f"{bullet_list(config, sorted(unattached))}",
-        )
-    else:
-        yield PASS, "All marks were anchored to dotted circle"
-
-
-@check(
-    id="com.google.fonts/check/soft_dotted",
-    severity=3,
-    rationale="""
-        An accent placed on characters with a "soft dot", like i or j, causes
-        the dot to disappear.
-        An explicit dot above can be added where required.
-        See "Diacritics on i and j" in Section 7.1, "Latin" in The Unicode Standard.
-
-        Characters with the Soft_Dotted property are listed in
-        https://www.unicode.org/Public/UCD/latest/ucd/PropList.txt
-        
-        See also:
-        https://googlefonts.github.io/gf-guide/diacritics.html#soft-dotted-glyphs
-    """,
-    proposal="https://github.com/googlefonts/fontbakery/issues/4059",
-)
-def com_google_fonts_check_soft_dotted(ttFont):
-    """Ensure soft_dotted characters lose their dot when combined with marks that
-    replace the dot."""
-    import itertools
-    from beziers.path import BezierPath
-    from fontTools import unicodedata
-    from fontbakery.utils import Vharfbuzz
-
-    cmap = ttFont["cmap"].getBestCmap()
-
-    # Soft dotted strings know to be used in orthographies.
-    ortho_soft_dotted_strings = set(
-        "i̋ i̍ i᷆ i᷇ i̓ i̊ i̐ ɨ́ ɨ̀ ɨ̂ ɨ̋ ɨ̏ ɨ̌ ɨ̄ ɨ̃ ɨ̈ ɨ̧́ ɨ̧̀ ɨ̧̂ ɨ̧̌ ɨ̱́ ɨ̱̀ ɨ̱̈ į́ į̀ į̂ į̄ į̄́ į̄̀ į̄̂ į̄̌ į̃ į̌ ị́ ị̀ ị̂ "
-        "ị̄ ị̃ ḭ́ ḭ̀ ḭ̄ j́ j̀ j̄ j̑ j̃ j̈ і́".split()
-    )
-    # Characters with Soft_Dotted property in Unicode.
-    soft_dotted_chars = set(
-        ord(c) for c in "iⅈ𝐢𝑖𝒊𝒾𝓲𝔦𝕚𝖎𝗂𝗶𝘪𝙞𝚒ⁱᵢįịḭɨᶤ𝼚ᶖjⅉ𝐣𝑗𝒋𝒿𝓳𝔧𝕛𝖏𝗃𝗷𝘫𝙟𝚓ʲⱼɉʝᶨϳіј"
-    ) & set(cmap.keys())
-    # Only check above marks used with Latin, Greek, Cyrillic scripts.
-    mark_above_chars = set(
-        (
-            c
-            for c in cmap.keys()
-            if unicodedata.combining(chr(c)) == 230
-            and unicodedata.block(chr(c)).startswith(
-                ("Combining Diacritical Marks", "Cyrillic")
-            )
-        )
-    )
-    # Only check non above marks used with Latin, Grek, Cyrillic scripts
-    # that are reordered before the above marks
-    mark_non_above_chars = set(
-        c
-        for c in cmap.keys()
-        if unicodedata.combining(chr(c)) < 230
-        and unicodedata.block(chr(c)).startswith("Combining Diacritical Marks")
-    )
-    # Skip when no characters to test with
-    if not soft_dotted_chars or not mark_above_chars:
-        yield SKIP, "Font has no soft dotted characters or no mark above characters."
-        return
-
-    # Collect outlines to skip fonts where i and dotlessi are the same,
-    # or i and I are the same.
-    outlines_dict = {
-        codepoint: BezierPath.fromFonttoolsGlyph(ttFont, glyphname)
-        for codepoint, glyphname in cmap.items()
-        if codepoint in [ord("i"), ord("I"), ord("ı")]
-    }
-    unclear = False
-    if ord("i") in cmap.keys() and ord("I") in cmap.keys():
-        if len(outlines_dict[ord("i")]) == len(outlines_dict[ord("I")]):
-            unclear = True
-    if not unclear and ord("i") in cmap.keys() and ord("ı") in cmap.keys():
-        if len(outlines_dict[ord("i")]) == len(outlines_dict[ord("ı")]):
-            unclear = True
-    if unclear:
-        yield SKIP, (
-            "It is not clear if the soft dotted characters have glyphs with dots."
-        )
-        return
-
-    # Use harfbuzz to check if soft dotted glyphs are substituted
-    filename = ttFont.reader.file.name
-    vharfbuzz = Vharfbuzz(filename)
-    fail_unchanged_strings = []
-    warn_unchanged_strings = []
-    for sequence in sorted(
-        itertools.product(
-            soft_dotted_chars,
-            # add "" to add cases without non above marks
-            mark_non_above_chars.union(set((0,))),
-            mark_above_chars,
-        )
-    ):
-        soft, non_above, above = sequence
-        if non_above:
-            unchanged = f"{cmap[soft]}|{cmap[non_above]}|{cmap[above]}"
-            text = chr(soft) + chr(non_above) + chr(above)
-        else:
-            unchanged = f"{cmap[soft]}|{cmap[above]}"
-            text = chr(soft) + chr(above)
-
-        # Only check a few strings that we WARN about.
-        if text not in ortho_soft_dotted_strings and len(warn_unchanged_strings) >= 20:
-            continue
-
-        buf = vharfbuzz.shape(text)
-        output = vharfbuzz.serialize_buf(buf, glyphsonly=True)
-        if output == unchanged:
-            if text in ortho_soft_dotted_strings:
-                fail_unchanged_strings.append(text)
-            else:
-                warn_unchanged_strings.append(text)
-
-    message = ""
-    if fail_unchanged_strings:
-        message += (
-            f"The dot of soft dotted characters used in orthographies "
-            f"must disappear in the following strings: "
-            f"{' '.join(fail_unchanged_strings)}"
-        )
-    if warn_unchanged_strings:
-        if message:
-            message += "\n\n"
-        message += (
-            f"The dot of soft dotted characters should disappear in "
-            f"other cases, for example: "
-            f"{' '.join(warn_unchanged_strings)}"
-        )
-    if fail_unchanged_strings:
-        yield FAIL, Message("soft-dotted", message)
-    elif warn_unchanged_strings:
-        yield WARN, Message("soft-dotted", message)
-    else:
-        yield PASS, (
-            "All soft dotted characters seem to lose their dot when "
-            "combined with a mark above."
-        )
 
 
 @check(
@@ -1983,18 +1915,16 @@ def com_google_fonts_check_soft_dotted(ttFont):
         the lookup).
 
         However, makeotf has never generated these lookup types and they are rare
-        in practice. Perhaps before of this, Mac's CoreText shaper does not correctly
+        in practice. Perhaps because of this, Mac's CoreText shaper does not correctly
         interpret GPOS7, meaning that these lookups will be ignored by the shaper,
         and fonts containing these lookups will have unintended positioning errors.
 
         To fix this warning, rebuild the font with a recent version of fonttools.
     """,
-    proposal="https://github.com/googlefonts/fontbakery/issues/3643",
+    proposal="https://github.com/fonttools/fontbakery/issues/3643",
 )
 def com_google_fonts_check_gpos7(ttFont):
     """Ensure no GPOS7 lookups are present."""
-    from fontbakery.utils import iterate_lookup_list_with_extensions
-
     has_gpos7 = False
 
     def find_gpos7(lookup):
@@ -2020,25 +1950,18 @@ def com_google_fonts_check_gpos7(ttFont):
     rationale="""
         Malformed fonts can cause FreeType to crash.
     """,
-    proposal="https://github.com/googlefonts/fontbakery/issues/3642",
+    proposal="https://github.com/fonttools/fontbakery/issues/3642",
 )
 def com_adobe_fonts_check_freetype_rasterizer(font):
     """Ensure that the font can be rasterized by FreeType."""
-    try:
-        import freetype
-        from freetype.ft_errors import FT_Exception
+    import freetype
+    from freetype.ft_errors import FT_Exception
 
+    try:
         face = freetype.Face(font)
         face.set_char_size(48 * 64)
         face.load_char("✅")  # any character can be used here
 
-    except ImportError:
-        yield SKIP, Message(
-            "freetype-not-installed",
-            "FreeType is not available. To fix this, invoke"
-            " the 'freetype' extra when installing Font Bakery:\n"
-            "pip3 install -U fontbakery[freetype]",
-        )
     except FT_Exception as err:
         yield FAIL, Message(
             "freetype-crash", f"Font caused FreeType to crash with this error: {err}"
@@ -2059,7 +1982,7 @@ def com_adobe_fonts_check_freetype_rasterizer(font):
 
         https://docs.microsoft.com/en-us/typography/opentype/spec/otff#table-directory
     """,
-    proposal="https://github.com/googlefonts/fontbakery/issues/3388",
+    proposal="https://github.com/fonttools/fontbakery/issues/3388",
 )
 def com_adobe_fonts_check_sfnt_version(ttFont, is_ttf, is_cff, is_cff2):
     """Font has the proper sfntVersion value?"""
@@ -2068,14 +1991,14 @@ def com_adobe_fonts_check_sfnt_version(ttFont, is_ttf, is_cff, is_cff2):
     if is_ttf and sfnt_version != "\x00\x01\x00\x00":
         yield FAIL, Message(
             "wrong-sfnt-version-ttf",
-            f"Font with TrueType outlines has incorrect sfntVersion value:"
+            "Font with TrueType outlines has incorrect sfntVersion value:"
             f" '{sfnt_version}'",
         )
 
     elif (is_cff or is_cff2) and sfnt_version != "OTTO":
         yield FAIL, Message(
             "wrong-sfnt-version-cff",
-            f"Font with CFF data has incorrect sfntVersion value:" f" '{sfnt_version}'",
+            f"Font with CFF data has incorrect sfntVersion value: '{sfnt_version}'",
         )
 
     else:
@@ -2089,24 +2012,22 @@ def com_adobe_fonts_check_sfnt_version(ttFont, is_ttf, is_cff, is_cff2):
         If the space and nbspace glyphs have different widths, then Google Workspace
         has problems with the font.
 
-        The nbspace is used to replace the space character in multiple situations
-        in documents; such as the space before punctuation in languages that do that.
-        It avoids the punctuation to be separated from the last word and go to next line.
+        The nbspace is used to replace the space character in multiple situations in
+        documents; such as the space before punctuation in languages that do that. It
+        avoids the punctuation to be separated from the last word and go to next line.
 
-        This is automatic substitution by the text editors, not by fonts. It is also
-        used by designers in text composition practice to create nicely shaped paragraphs.
+        This is automatic substitution by the text editors, not by fonts. It's also used
+        by designers in text composition practice to create nicely shaped paragraphs.
         If the space and the nbspace are not the same width, it breaks the text
         composition of documents.
     """,
     proposal=[
-        "https://github.com/googlefonts/fontbakery/issues/3843",
+        "https://github.com/fonttools/fontbakery/issues/3843",
         "legacy:check/050",
     ],
 )
 def com_google_fonts_check_whitespace_widths(ttFont):
     """Space and non-breaking space have the same width?"""
-    from fontbakery.utils import get_glyph_name
-
     space_name = get_glyph_name(ttFont, 0x0020)
     nbsp_name = get_glyph_name(ttFont, 0x00A0)
 
@@ -2118,44 +2039,38 @@ def com_google_fonts_check_whitespace_widths(ttFont):
     else:
         yield FAIL, Message(
             "different-widths",
-            f"Space and non-breaking space have differing width:"
-            f" The space glyph named {space_name}"
-            f" is {space_width} font units wide,"
-            f" non-breaking space named ({nbsp_name})"
-            f" is {nbsp_width} font units wide, and"
-            f" both should be positive and the same."
-            f' GlyphsApp has "Sidebearing arithmetic"'
-            f" (https://glyphsapp.com/tutorials/spacing)"
-            f" which allows you to set the non-breaking"
-            f" space width to always equal the space width.",
+            "Space and non-breaking space have differing width:"
+            f" The space glyph named {space_name} is {space_width} font units wide,"
+            f" non-breaking space named ({nbsp_name}) is {nbsp_width} font units wide,"
+            ' and both should be positive and the same. GlyphsApp has "Sidebearing'
+            ' arithmetic" (https://glyphsapp.com/tutorials/spacing) which allows you to'
+            " set the non-breaking space width to always equal the space width.",
         )
 
 
 @check(
     id="com.google.fonts/check/interpolation_issues",
-    conditions=["is_variable_font"],
+    conditions=["is_variable_font", "is_ttf"],
     severity=4,
     rationale="""
-        When creating a variable font, the designer must make sure that
-        corresponding paths have the same start points across masters, as well
-        as that corresponding component shapes are placed in the same order
-        within a glyph across masters. If this is not done, the glyph will not
-        interpolate correctly.
+        When creating a variable font, the designer must make sure that corresponding
+        paths have the same start points across masters, as well as that corresponding
+        component shapes are placed in the same order within a glyph across masters.
+        If this is not done, the glyph will not interpolate correctly.
 
-        Here we check for the presence of potential interpolation errors
-        using the fontTools.varLib.interpolatable module.
+        Here we check for the presence of potential interpolation errors using the
+        fontTools.varLib.interpolatable module.
     """,
-    proposal="https://github.com/googlefonts/fontbakery/issues/3930",
+    proposal="https://github.com/fonttools/fontbakery/issues/3930",
 )
-def com_google_fonts_check_iterpolation_issues(ttFont, config):
+def com_google_fonts_check_interpolation_issues(ttFont, config):
     """Detect any interpolation issues in the font."""
     from fontTools.varLib.interpolatable import test as interpolation_test
-    from fontbakery.utils import bullet_list
+    from fontTools.varLib.models import piecewiseLinearMap
 
     gvar = ttFont["gvar"]
     # This code copied from fontTools.varLib.interpolatable
     locs = set()
-    names = []
     for variations in gvar.variations.values():
         for var in variations:
             loc = []
@@ -2165,43 +2080,62 @@ def com_google_fonts_check_iterpolation_issues(ttFont, config):
 
     # Rebuild locs as dictionaries
     new_locs = [{}]
-    names.append("()")
     for loc in sorted(locs, key=lambda v: (len(v), v)):
-        names.append(str(loc))
-        l = {}
+        location = {}
         for tag, val in loc:
-            l[tag] = val
-        new_locs.append(l)
+            location[tag] = val
+        new_locs.append(location)
+
+    axis_maps = {
+        ax.axisTag: {-1: ax.minValue, 0: ax.defaultValue, 1: ax.maxValue}
+        for ax in ttFont["fvar"].axes
+    }
 
     locs = new_locs
     glyphsets = [ttFont.getGlyphSet(location=loc, normalized=True) for loc in locs]
-    results = interpolation_test(glyphsets)
 
-    if not results:
+    # Name glyphsets by their full location. Different versions of fonttools
+    # have differently-typed default names, and so this optional argument must
+    # be provided to ensure that returned names are always strings.
+    # See: https://github.com/fonttools/fontbakery/issues/4356
+    names: List[str] = []
+    for glyphset in glyphsets:
+        full_location: List[str] = []
+        for ax in ttFont["fvar"].axes:
+            normalized = glyphset.location.get(ax.axisTag, 0)
+            denormalized = int(piecewiseLinearMap(normalized, axis_maps[ax.axisTag]))
+            full_location.append(f"{ax.axisTag}={denormalized}")
+        names.append(",".join(full_location))
+
+    # Inputs are ready; run the tests.
+    results = interpolation_test(glyphsets, names=names)
+
+    # Most of the potential problems varLib.interpolatable finds can't
+    # exist in a built binary variable font. We focus on those which can.
+    report = []
+    for glyph, glyph_problems in results.items():
+        for p in glyph_problems:
+            if p["type"] == "contour_order":
+                report.append(
+                    f"Contour order differs in glyph '{glyph}':"
+                    f" {p['value_1']} in {p['master_1']},"
+                    f" {p['value_2']} in {p['master_2']}."
+                )
+            elif p["type"] == "wrong_start_point":
+                report.append(
+                    f"Contour {p['contour']} start point"
+                    f" differs in glyph '{glyph}' between"
+                    f" location {p['master_1']} and"
+                    f" location {p['master_2']}"
+                )
+
+    if not report:
         yield PASS, "No interpolation issues found"
     else:
-        # Most of the potential problems varLib.interpolatable finds can't
-        # exist in a built binary variable font. We focus on those which can.
-        report = []
-        for glyph, glyph_problems in results.items():
-            for p in glyph_problems:
-                if p["type"] == "contour_order":
-                    report.append(
-                        f"Contour order differs in glyph '{glyph}':"
-                        f" {p['value_1']} in {p['master_1'] or 'default'},"
-                        f" {p['value_2']} in {p['master_2'] or 'default'}."
-                    )
-                elif p["type"] == "wrong_start_point":
-                    report.append(
-                        f"Contour {p['contour']} start point"
-                        f" differs in glyph '{glyph}' between"
-                        f" location {p['master_1'] or 'default'} and"
-                        f" location {p['master_2'] or 'default'}"
-                    )
         yield WARN, Message(
             "interpolation-issues",
-            f"Interpolation issues were found in the font:"
-            f" {bullet_list(config, report)}",
+            f"Interpolation issues were found in the font:\n\n"
+            f"{bullet_list(config, report)}",
         )
 
 
@@ -2214,12 +2148,10 @@ def com_google_fonts_check_iterpolation_issues(ttFont, config):
         This probably comes from the will to avoid additional tabular math signs
         knowing that their design can easily share the same width.
     """,
-    proposal="https://github.com/googlefonts/fontbakery/issues/3832",
+    proposal="https://github.com/fonttools/fontbakery/issues/3832",
 )
 def com_google_fonts_check_math_signs_width(ttFont):
     """Check math signs have the same width."""
-    from fontbakery.utils import get_glyph_name
-
     # Ironically, the block of text below may not have
     # uniform widths for these glyphs depending on
     # which font your text editor is using while you
@@ -2256,7 +2188,7 @@ def com_google_fonts_check_math_signs_width(ttFont):
     most_common_width = None
     num_glyphs = 0
     for glyph_width, glyph_names in glyphs_by_width.items():
-        if most_common_width == None:
+        if most_common_width is None:
             num_glyphs = len(glyph_names)
             most_common_width = glyph_width
         else:
@@ -2268,14 +2200,13 @@ def com_google_fonts_check_math_signs_width(ttFont):
         outliers_summary = []
         for w, names in glyphs_by_width.items():
             if not w == most_common_width:
-                outliers_summary.append(f"Width = {w}:\n" f"{', '.join(names)}\n")
+                outliers_summary.append(f"Width = {w}:\n{', '.join(names)}\n")
         outliers_summary = "\n".join(outliers_summary)
         yield WARN, Message(
             "width-outliers",
-            f"The most common width is {most_common_width}"
-            f" among a set of {num_glyphs} math glyphs.\n"
-            f"The following math glyphs have a different width, though:\n\n"
-            f"{outliers_summary}",
+            f"The most common width is {most_common_width} among a set of {num_glyphs}"
+            " math glyphs.\nThe following math glyphs have a different width, though:"
+            f"\n\n{outliers_summary}",
         )
     else:
         yield PASS, "Looks good."
@@ -2296,7 +2227,7 @@ def com_google_fonts_check_math_signs_width(ttFont):
         (typo/hhea)LineGap values must be 0.
     """,
     proposal=[
-        "https://github.com/googlefonts/fontbakery/issues/4133",
+        "https://github.com/fonttools/fontbakery/issues/4133",
         "https://googlefonts.github.io/gf-guide/metrics.html",
     ],
 )
@@ -2320,12 +2251,12 @@ def com_google_fonts_check_linegaps(ttFont):
 
 @check(
     id="com.google.fonts/check/STAT_in_statics",
-    conditions=["not is_variable_font"],
+    conditions=["not is_variable_font", "has_STAT_table"],
     rationale="""
         Adobe feature syntax allows for the definition of a STAT table. Fonts built
         with a hand-coded STAT table in feature syntax may be built either as static
         or variable, but will end up with the same STAT table.
-        
+
         This is a problem, because a STAT table which works on variable fonts
         will not be appropriate for static instances. The examples in the OpenType spec
         of non-variable fonts with a STAT table show that the table entries must be
@@ -2343,7 +2274,7 @@ def com_google_fonts_check_linegaps(ttFont):
         read the first entry only, causing all instances to report themselves
         as "Thin Condensed".
     """,
-    proposal="https://github.com/googlefonts/fontbakery/issues/4149",
+    proposal="https://github.com/fonttools/fontbakery/issues/4149",
 )
 def com_google_fonts_check_STAT_in_statics(ttFont):
     """Checking STAT table entries in static fonts."""
@@ -2357,29 +2288,113 @@ def com_google_fonts_check_STAT_in_statics(ttFont):
             entries[tag_name] = 1
 
     passed = True
-    if "STAT" in ttFont:
-        stat = ttFont["STAT"].table
-        designAxes = stat.DesignAxisRecord.Axis
-        for axisValueTable in stat.AxisValueArray.AxisValue:
-            axisValueFormat = axisValueTable.Format
-            if axisValueFormat in (1, 2, 3):
-                axisTag = designAxes[axisValueTable.AxisIndex].AxisTag
+    stat = ttFont["STAT"].table
+    designAxes = stat.DesignAxisRecord.Axis
+    for axisValueTable in stat.AxisValueArray.AxisValue:
+        axisValueFormat = axisValueTable.Format
+        if axisValueFormat in (1, 2, 3):
+            axisTag = designAxes[axisValueTable.AxisIndex].AxisTag
+            count_entries(axisTag)
+        elif axisValueFormat == 4:
+            for rec in axisValueTable.AxisValueRecord:
+                axisTag = designAxes[rec.AxisIndex].AxisTag
                 count_entries(axisTag)
-            elif axisValueFormat == 4:
-                for rec in axisValueTable.AxisValueRecord:
-                    axisTag = designAxes[rec.AxisIndex].AxisTag
-                    count_entries(axisTag)
 
-        for tag_name in entries:
-            if entries[tag_name] > 1:
-                passed = False
-                yield FAIL, Message(
-                    "multiple-STAT-entries",
-                    f"The STAT table has more than a single entry for the"
-                    f" '{tag_name}' axis ({entries[tag_name]}) on this"
-                    f" static font which will causes problems on Windows.",
+    for tag_name in entries:
+        if entries[tag_name] > 1:
+            passed = False
+            yield FAIL, Message(
+                "multiple-STAT-entries",
+                "The STAT table has more than a single entry for the"
+                f" '{tag_name}' axis ({entries[tag_name]}) on this"
+                " static font which will causes problems on Windows.",
+            )
+
+    if passed:
+        yield PASS, "Looks good!"
+
+
+@check(
+    id="com.google.fonts/check/alt_caron",
+    conditions=["is_ttf"],
+    rationale="""
+        Lcaron, dcaron, lcaron, tcaron should NOT be composed with quoteright
+        or quotesingle or comma or caron(comb). It should be composed with a
+        distinctive glyph which doesn't look like an apostrophe.
+
+        Source:
+        https://ilovetypography.com/2009/01/24/on-diacritics/
+        http://diacritics.typo.cz/index.php?id=5
+        https://www.typotheque.com/articles/lcaron
+    """,
+    proposal="https://github.com/fonttools/fontbakery/issues/3308",
+)
+def com_google_fonts_check_alt_caron(ttFont):
+    """Check accent of Lcaron, dcaron, lcaron, tcaron"""
+
+    CARON_GLYPHS = set(
+        (
+            0x013D,  # LATIN CAPITAL LETTER L WITH CARON
+            0x010F,  # LATIN SMALL LETTER D WITH CARON
+            0x013E,  # LATIN SMALL LETTER L WITH CARON
+            0x0165,  # LATIN SMALL LETTER T WITH CARON
+        )
+    )
+
+    WRONG_CARON_MARKS = set(
+        (
+            0x02C7,  # CARON
+            0x030C,  # COMBINING CARON
+        )
+    )
+
+    # This may be expanded to include other comma-lookalikes:
+    BAD_CARON_MARKS = set(
+        (
+            0x002C,  # COMMA
+            0x2019,  # RIGHT SINGLE QUOTATION MARK
+            0x201A,  # SINGLE LOW-9 QUOTATION MARK
+            0x0027,  # APOSTROPHE
+        )
+    )
+
+    passed = True
+
+    glyphOrder = ttFont.getGlyphOrder()
+    reverseCmap = ttFont["cmap"].buildReversed()
+
+    for name in glyphOrder:
+        if reverseCmap.get(name, set()).intersection(CARON_GLYPHS):
+            glyph = ttFont["glyf"][name]
+            if not glyph.isComposite():
+                yield WARN, Message(
+                    "decomposed-outline",
+                    f"{name} is decomposed and therefore could not be checked."
+                    f" Please check manually.",
                 )
+                continue
+            if len(glyph.components) == 1:
+                yield WARN, Message(
+                    "single-component",
+                    f"{name} is composed of a single component and therefore"
+                    f" could not be checked. Please check manually.",
+                )
+            if len(glyph.components) > 1:
+                for component in glyph.components:
+                    # Uses absolutely wrong caron mark
+                    codepoints = reverseCmap.get(component.glyphName, set())
+                    if codepoints.intersection(WRONG_CARON_MARKS):
+                        passed = False
+                        yield FAIL, Message(
+                            "wrong-mark",
+                            f"{name} uses component {component.glyphName}.",
+                        )
 
+                    # Uses bad mark
+                    if codepoints.intersection(BAD_CARON_MARKS):
+                        yield WARN, Message(
+                            "bad-mark", f"{name} uses component {component.glyphName}."
+                        )
     if passed:
         yield PASS, "Looks good!"
 

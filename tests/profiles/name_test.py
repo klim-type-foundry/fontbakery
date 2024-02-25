@@ -10,7 +10,7 @@ from fontbakery.constants import (
     MacintoshEncodingID,
     MacintoshLanguageID,
 )
-from fontbakery.checkrunner import INFO, WARN, PASS, FAIL, SKIP
+from fontbakery.status import INFO, WARN, PASS, FAIL, SKIP
 from fontbakery.codetesting import (
     assert_PASS,
     assert_SKIP,
@@ -92,7 +92,7 @@ def test_check_monospace():
         check(ttFont),
         FAIL,
         "bad-post-isFixedPitch",
-        "with a non-monospaced font with bad" " post.isFixedPitch value ...",
+        "with a non-monospaced font with bad post.isFixedPitch value ...",
     )
 
     # restore good value:
@@ -139,17 +139,29 @@ def test_check_monospace():
         status == PASS and message.code == "mono-good"
     )
 
-    # Let's incorrectly mark it as a non-monospaced on the post table and it should fail:
+    # Mark it as a non-monospaced on the post table and it should
+    # result in a WARN, if we find outliers
     ttFont["post"].isFixedPitch = IsFixedWidth.NOT_MONOSPACED
-    # here we search for the expected FAIL among all results
-    # instead of simply looking at the last one
-    # because we may also get an outliers WARN in some cases:
+    assert_results_contain(
+        check(ttFont),
+        WARN,
+        "mono-outliers",
+        "with a monospaced font containing a few width outliers...",
+    )
+
+    # or a FAIL otherwise:
+    for g in ttFont["hmtx"].metrics:  # fake it!
+        ttFont["hmtx"].metrics[g] = (123, 456)  # (adv, lsb)
     assert_results_contain(
         check(ttFont),
         FAIL,
         "mono-bad-post-isFixedPitch",
-        "with a monospaced font with" " bad post.isFixedPitch value ...",
+        "with a monospaced font with bad post.isFixedPitch value ...",
     )
+
+    # restore original testing font:
+    ttFont = TTFont(TEST_FILE("overpassmono/OverpassMono-Regular.ttf"))
+    ttFont["post"].isFixedPitch = IsFixedWidth.NOT_MONOSPACED
 
     # There are several bad panose proportion values for a monospaced font.
     # Only PANOSE_Proportion.MONOSPACED would be valid.
@@ -167,7 +179,8 @@ def test_check_monospace():
     ]
     for bad_value in bad_monospaced_panose_values:
         ttFont["OS/2"].panose.bProportion = bad_value
-        # again, we search the expected FAIL because we may algo get an outliers WARN here:
+        # again, we search the expected FAIL because
+        # we may algo get an outliers WARN here:
         assert_results_contain(
             check(ttFont),
             FAIL,
@@ -355,17 +368,9 @@ def test_check_family_naming_recommendations():
         if name.nameID == NameID.POSTSCRIPT_NAME:
             print("== NameID.POST_SCRIPT_NAME ==")
 
-            print("Test INFO: May contain only a-zA-Z0-9 characters and an hyphen...")
-            # The '@' and '!' chars here are the expected rule violations:
-            name_test("B@zinga!", INFO, "bad-entries")
-
             print("Test PASS: A name with a single hyphen is OK...")
             # A single hypen in the name is OK:
             name_test("Big-Bang", PASS)
-
-            print("Test INFO: May not contain more than a single hyphen...")
-            # The second hyphen char here is the expected rule violation:
-            name_test("Big-Bang-Theory", INFO, "bad-entries")
 
             print("Test INFO: Exceeds max length (63)...")
             name_test("A" * 64, INFO, "bad-entries")
@@ -453,13 +458,13 @@ def test_check_name_postscript_vs_cff():
     # The test should be skipped due to an unfulfilled condition.
     ttFont = TTFont(TEST_FILE("source-sans-pro/TTF/SourceSansPro-Bold.ttf"))
     msg = assert_results_contain(check(ttFont), SKIP, "unfulfilled-conditions")
-    assert msg == "Unfulfilled Conditions: is_cff"
+    assert "Unfulfilled Conditions: is_cff" in msg.message
 
     # Now test with a CFF2 font.
     # The test should be skipped due to an unfulfilled condition.
     ttFont = TTFont(TEST_FILE("source-sans-pro/VAR/SourceSansVariable-Italic.otf"))
     msg = assert_results_contain(check(ttFont), SKIP, "unfulfilled-conditions")
-    assert msg == "Unfulfilled Conditions: is_cff"
+    assert "Unfulfilled Conditions: is_cff" in msg.message
 
 
 def test_check_name_postscript_name_consistency():
@@ -653,3 +658,37 @@ def test_check_italic_names():
     ttFont = TTFont(TEST_FILE("shantell/ShantellSans-Italic[BNCE,INFM,SPAC,wght].ttf"))
     set_name(ttFont, 17, "Light")
     assert_results_contain(check(ttFont), FAIL, "bad-typographicsubfamilyname")
+
+
+def test_check_name_postscript():
+    check = CheckTester(opentype_profile, "com.adobe.fonts/check/postscript_name")
+
+    # Test a font that has OK psname. Check should PASS.
+    ttFont = TTFont(TEST_FILE("source-sans-pro/OTF/SourceSansPro-Bold.otf"))
+    assert_PASS(check(ttFont))
+
+    # Change the PostScript name string to more than one hyphen. Should FAIL.
+    bad_ps_name = "more-than-one-hyphen".encode("utf-16-be")
+    ttFont["name"].setName(
+        bad_ps_name,
+        NameID.POSTSCRIPT_NAME,
+        PlatformID.WINDOWS,
+        WindowsEncodingID.UNICODE_BMP,
+        WindowsLanguageID.ENGLISH_USA,
+    )
+    msg = assert_results_contain(check(ttFont), FAIL, "bad-psname-entries")
+    assert "PostScript name does not follow requirements" in msg
+    assert "May contain not more than a single hyphen." in msg
+
+    # Now change it to a string with illegal characters. Should FAIL.
+    bad_ps_name = "(illegal) characters".encode("utf-16-be")
+    ttFont["name"].setName(
+        bad_ps_name,
+        NameID.POSTSCRIPT_NAME,
+        PlatformID.WINDOWS,
+        WindowsEncodingID.UNICODE_BMP,
+        WindowsLanguageID.ENGLISH_USA,
+    )
+    msg = assert_results_contain(check(ttFont), FAIL, "bad-psname-entries")
+    assert "PostScript name does not follow requirements" in msg
+    assert "May contain only a-zA-Z0-9 characters and a hyphen." in msg

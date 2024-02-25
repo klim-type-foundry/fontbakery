@@ -16,13 +16,35 @@
 import os
 import subprocess
 import sys
-
-from fontTools.ttLib import TTFont
-from fontTools.unicodedata import ot_tag_to_script
 from typing import Text, Optional
+
+from fontTools.pens.basePen import BasePen
+from fontTools.ttLib import TTFont
+import rich
+
 from fontbakery.constants import NO_COLORS_THEME, DARK_THEME, LIGHT_THEME
-from ufo2ft.constants import INDIC_SCRIPTS, USE_SCRIPTS
-from vharfbuzz import Vharfbuzz
+
+profile_name = None
+
+
+def set_profile_name(name):
+    global profile_name  # pylint:disable=W0603 (global-statement)
+    profile_name = name
+
+
+def exit_with_install_instructions():
+    sys.exit(
+        f"\nTo run the {profile_name} profile, one needs to install\n"
+        f"fontbakery with the '{profile_name}' extra, like this:\n\n"
+        f"    python -m pip install -U 'fontbakery[{profile_name}]'\n\n"
+    )
+
+
+def remove_white_space(s):
+    s = s.replace(" ", "")
+    s = s.replace("\t", "")
+    s = s.replace("\n", "")
+    return s
 
 
 # TODO: this should be part of FontBakeryCheck and check.conditions
@@ -31,82 +53,7 @@ def is_negated(name):
     stripped = name.strip()
     if stripped.startswith("not "):
         return True, stripped[4:].strip()
-    if stripped.startswith("!"):
-        return True, stripped[1:].strip()
     return False, stripped
-
-
-def colorless_len(str):
-    import re
-
-    return len(re.sub("\x1b(\\[[0-9;]+|\\].+)m", "", str))
-
-
-def text_flow(
-    content,
-    width=80,
-    indent=0,
-    left_margin=0,
-    right_margin=0,
-    first_line_indent=0,
-    space_padding=False,
-    text_color="{}".format,
-):  # pylint: disable=consider-using-f-string
-    result = []
-    line_num = 0
-    for line in content.split("\n"):
-        _indent = indent
-        _width = width - right_margin
-
-        if line.strip() == "":
-            if space_padding:
-                result.append(" " * _indent + text_color(" " * width))
-            continue
-
-        words = line.split(" ")
-        while words:
-            line_num += 1
-            if line_num == 1:
-                if left_margin > -first_line_indent:
-                    inside_indent = " " * (left_margin + first_line_indent)
-                else:
-                    inside_indent = ""
-            else:
-                inside_indent = " " * left_margin
-            this_line = inside_indent + words.pop(0)
-
-            if colorless_len(this_line) > _width:
-                # let's see what we can do to make it fit
-                if "/" in this_line:
-                    # here we feed-back chunks of a URL
-                    # into words if it overflows the block
-                    chunks = this_line.split("/")
-                    new_line = chunks.pop(0)
-                    while chunks:
-                        next_len = (
-                            colorless_len(new_line) + 1 + colorless_len(chunks[0])
-                        )
-                        if next_len >= _width:
-                            break
-                        new_line += "/" + chunks.pop(0)
-                    this_line = new_line
-                    words.insert(0, "/" + "/".join(chunks))
-                else:
-                    # not sure what else to do,
-                    # so we'll simply cut the long word
-                    words.insert(0, this_line[_width:])  # word overflow chunk
-                    this_line = this_line[:_width]  # line with chopped word leftover
-
-            while words and (
-                colorless_len(this_line) + 1 + colorless_len(words[0]) <= _width
-            ):
-                this_line += " " + words.pop(0)
-
-            if space_padding:
-                # pad the line with spaces to fit the block width:
-                this_line += " " * (width - colorless_len(this_line))
-            result.append(" " * _indent + text_color(this_line))
-    return "\n".join(result)
 
 
 def get_apple_terminal_bg_color():
@@ -115,9 +62,12 @@ def get_apple_terminal_bg_color():
     line_1 = 'tell application "Terminal"'
     line_2 = "    get background color of selected tab of window 1"
     line_3 = "end tell"
-    output = subprocess.check_output(
-        ["osascript", "-e", line_1, "-e", line_2, "-e", line_3], text=True
-    )
+    output = subprocess.run(
+        ["osascript", "-e", line_1, "-e", line_2, "-e", line_3],
+        text=True,
+        check=True,
+        stdout=subprocess.PIPE,
+    ).stdout
     return output.strip()
 
 
@@ -145,7 +95,7 @@ def get_theme(args):
         # terminal app. Default to the light-theme only if we're sure that the terminal
         # app is Apple's Terminal and its background color is indeed white.
         return LIGHT_THEME if apple_terminal_bg_is_white() else DARK_THEME
-    # For orther systems like GNU+Linux and Windows, a dark terminal seems to be more common.
+    # For orther systems like GNU+Linux and Windows, a dark terminal may be more common.
     return DARK_THEME
 
 
@@ -175,37 +125,21 @@ def unindent_and_unwrap_rationale(rationale, checkid=None):
 
 
 def html5_collapsible(summary, details) -> str:
-    """Return nestable, collapsible <detail> tag for check grouping and sub-
-    results."""
-
+    """Return nestable, collapsible <detail> tag for check grouping and sub-results."""
     return f"<details><summary>{summary}</summary><div>{details}</div></details>"
 
 
 def split_camel_case(camelcase):
-    result = []
-    word = ""
-    for char in camelcase:
-        if char.isupper():
-            if word != "":
-                result.append(word)
-            word = char
-        else:
-            word += char
+    chars = []
+    for i, char in enumerate(camelcase):
+        if char.isupper() and i > 0:
+            chars.append(" ")
+        chars.append(char)
 
-    if word != "":
-        result.append(word)
-    return " ".join(result)
+    return "".join(chars)
 
 
-def suffix(font):
-    filename = os.path.basename(font)
-    basename = os.path.splitext(filename)[0]
-    s = basename.split("-")
-    s.pop(0)
-    return "-".join(s)
-
-
-def pretty_print_list(config, values, shorten=10, sep=", ", glue="and"):
+def pretty_print_list(config, values, shorten=10, sep=", ", glue=" and "):
     if len(values) == 1:
         return str(values[0])
 
@@ -215,13 +149,13 @@ def pretty_print_list(config, values, shorten=10, sep=", ", glue="and"):
     if shorten and len(values) > shorten + 2:
         joined_items_str = sep.join(map(str, values[:shorten]))
         return (
-            f"{joined_items_str} {glue} {len(values) - shorten} more.\n"
+            f"{joined_items_str}{glue}{len(values) - shorten} more.\n"
             f"\n"
             f"Use -F or --full-lists to disable shortening of long lists."
         )
     else:
         joined_items_str = sep.join(map(str, values[:-1]))
-        return f"{joined_items_str} {glue} {str(values[-1])}"
+        return f"{joined_items_str}{glue}{str(values[-1])}"
 
 
 def bullet_list(config, items, bullet="-", indentation="\t"):
@@ -229,7 +163,7 @@ def bullet_list(config, items, bullet="-", indentation="\t"):
         config,
         items,
         sep=f"\n\n{indentation}{bullet} ",
-        glue=f"\n\n{indentation}{bullet}",
+        glue=f"\n\n{indentation}{bullet} ",
     )
 
 
@@ -262,12 +196,6 @@ def get_regular(fonts):
     for font in fonts:
         if "-Regular.ttf" in font:
             return font
-
-
-def get_absolute_path(p):
-    if not os.path.isabs(p):
-        p = os.path.abspath(p)
-    return p
 
 
 def filesize_formatting(s):
@@ -369,7 +297,7 @@ def get_font_glyph_data(font):
             subtable = font["cmap"].tables[0]
 
         cmap = subtable.cmap
-    except:
+    except (AttributeError, IndexError, KeyError):
         return None
 
     cmap_reversed = dict(zip(cmap.values(), cmap.keys()))
@@ -385,7 +313,10 @@ def get_font_glyph_data(font):
 
 
 def get_Protobuf_Message(klass, path):
-    from google.protobuf import text_format
+    try:
+        from google.protobuf import text_format
+    except ImportError:
+        exit_with_install_instructions()
 
     message = klass()
     text_data = open(path, "rb").read()
@@ -394,14 +325,20 @@ def get_Protobuf_Message(klass, path):
 
 
 def get_FamilyProto_Message(path):
-    from fontbakery.fonts_public_pb2 import FamilyProto
+    try:
+        from fontbakery.fonts_public_pb2 import FamilyProto
+    except ImportError:
+        exit_with_install_instructions()
 
     return get_Protobuf_Message(FamilyProto, path)
 
 
 def get_DesignerInfoProto_Message(text_data):
-    from fontbakery.designers_pb2 import DesignerInfoProto
-    from google.protobuf import text_format
+    try:
+        from fontbakery.designers_pb2 import DesignerInfoProto
+        from google.protobuf import text_format
+    except ImportError:
+        exit_with_install_instructions()
 
     message = DesignerInfoProto()
     text_format.Merge(text_data, message)
@@ -527,7 +464,7 @@ def compute_unicoderange_bits(ttFont):
     return result
 
 
-def glyph_has_ink(font: TTFont, name: Text) -> bool:
+def glyph_has_ink(font: TTFont, glyph_name: Text) -> bool:
     """Checks if specified glyph has any ink.
 
     That is, that it has at least one defined contour associated.
@@ -539,9 +476,9 @@ def glyph_has_ink(font: TTFont, name: Text) -> bool:
         True if the font has at least one contour associated with it.
     """
     if "glyf" in font:
-        return ttf_glyph_has_ink(font, name)
+        return ttf_glyph_has_ink(font, glyph_name)
     elif ("CFF " in font) or ("CFF2" in font):
-        return cff_glyph_has_ink(font, name)
+        return cff_glyph_has_ink(font, glyph_name)
     else:
         raise Exception("Could not find 'glyf', 'CFF ', or 'CFF2' table.")
 
@@ -577,17 +514,6 @@ def add_check_overrides(checkids, profile_tag, overrides):
     # may have also been included from the original profile:
     checkids[:] = [checkid for checkid in checkids if checkid not in overrides]
     return checkids
-
-
-def can_shape(ttFont, text, parameters=None):
-    """
-    Returns true if the font can render a text string without any
-    .notdef characters.
-    """
-    filename = ttFont.reader.file.name
-    vharfbuzz = Vharfbuzz(filename)
-    buf = vharfbuzz.shape(text, parameters)
-    return all(g.codepoint != 0 for g in buf.glyph_infos)
 
 
 def all_kerning(ttFont):
@@ -634,21 +560,6 @@ def all_kerning(ttFont):
     return rules
 
 
-def is_complex_shaper_font(ttFont):
-    for table in ["GSUB", "GPOS"]:
-        if table not in ttFont:
-            continue
-        if not ttFont[table].table.ScriptList:
-            continue
-        for rec in ttFont[table].table.ScriptList.ScriptRecord:
-            script = ot_tag_to_script(rec.ScriptTag)
-            if script in USE_SCRIPTS or script in INDIC_SCRIPTS:
-                return True
-            if script in ["Khmr", "Mymr", "Hang"]:
-                return True
-    return False
-
-
 def iterate_lookup_list_with_extensions(ttFont, table, callback, *args):
     """Iterates over the lookup list of a font's GSUB/GPOS table, calling
     the callback with the lookup and the provided arguments, but descending
@@ -673,9 +584,6 @@ def axis(ttFont, tag):
     for axis in ttFont["fvar"].axes:
         if axis.axisTag == tag:
             return axis
-
-
-from fontTools.pens.basePen import BasePen
 
 
 class PointsPen(BasePen):
@@ -711,22 +619,51 @@ class PointsPen(BasePen):
     def highestPoint(self):
         highest = None
         for p in self.points:
-            if (
-                highest is None
-                or p[1] > highest[1]  # pylint: disable=unsubscriptable-object
-            ):
+            if highest is None or p[1] > highest[1]:  # pylint: disable=E1136
                 highest = p
         return highest
 
     def lowestPoint(self):
         lowest = None
         for p in self.points:
-            if (
-                lowest is None
-                or p[1] < lowest[1]  # pylint: disable=unsubscriptable-object
-            ):
+            if lowest is None or p[1] < lowest[1]:  # pylint: disable=E1136
                 lowest = p
         return lowest
 
     def _addComponent(self, glyphName, transformation):
         self.glyphSet[glyphName].draw(self)
+
+
+class IndentedParagraph:
+    def __init__(self, renderable, left=4, right=0, first=None):
+        self.renderable = renderable
+        self.left = left
+        self.right = right
+        if first is not None:
+            self.first = first
+        else:
+            self.first = self.left
+
+    def __rich_console__(self, console, options):
+        style = console.get_style("none")
+        width = options.max_width
+        render_options = options.update_width(width - self.left - self.right)
+        lines = console.render_lines(
+            self.renderable, render_options, style=style, pad=True
+        )
+        _Segment = rich.segment.Segment
+
+        left = _Segment(" " * self.left, style) if self.left else None
+        first = _Segment(" " * self.first, style) if self.left else None
+        right = (
+            [_Segment(f'{" " * self.right}', style), _Segment.line()]
+            if self.right
+            else [_Segment.line()]
+        )
+        for ix, line in enumerate(lines):
+            if ix == 0:
+                yield first
+            else:
+                yield left
+            yield from line
+            yield from right

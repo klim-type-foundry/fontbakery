@@ -3,9 +3,7 @@ from fontbakery.status import FAIL, INFO, PASS, WARN
 from fontbakery.message import Message
 
 # used to inform get_module_profile whether and how to create a profile
-from fontbakery.fonts_profile import (  # NOQA pylint: disable=unused-import
-    profile_factory,
-)
+from fontbakery.fonts_profile import profile_factory  # noqa:F401 pylint:disable=W0611
 
 
 @check(
@@ -32,8 +30,8 @@ from fontbakery.fonts_profile import (  # NOQA pylint: disable=unused-import
     """,
     proposal=[
         "legacy:check/066",
-        "https://github.com/googlefonts/fontbakery/issues/1675",
-        "https://github.com/googlefonts/fontbakery/issues/3148",
+        "https://github.com/fonttools/fontbakery/issues/1675",
+        "https://github.com/fonttools/fontbakery/issues/3148",
     ],
 )
 def com_google_fonts_check_kern_table(ttFont):

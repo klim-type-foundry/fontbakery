@@ -16,7 +16,9 @@ interface FontBakeryResultStatuses {
 }
 
 interface FontBakeryLog {
-    message: string;
+    message: {
+      message: string;
+    };
     status: FontBakeryStatus;
     traceback: null | unknown;
 }

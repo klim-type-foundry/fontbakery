@@ -1,5 +1,5 @@
 """
-Font Bakery CheckRunner is the driver of a font bakery suite of checks.
+FontBakery CheckRunner is the driver of a fontbakery suite of checks.
 """
 import glob
 import logging
@@ -7,7 +7,9 @@ import argparse
 from dataclasses import dataclass
 import os
 
-from fontbakery.callable import FontBakeryExpectedValue as ExpectedValue
+from fontbakery.callable import (
+    FontBakeryExpectedValue as ExpectedValue,
+)
 from fontbakery.profile import Profile
 from fontbakery.errors import ValueValidationError
 
@@ -76,9 +78,14 @@ class FontsProfile(Profile):
 
         class MergeAction(argparse.Action):
             def __call__(self, parser, namespace, values, option_string=None):
+                if namespace.list_checks:
+                    # -L/--list-checks option was used; don't try to validate file
+                    # inputs because this option doesn't require them
+                    return
                 for file_description in profile.accepted_files:
                     setattr(namespace, file_description.name, [])
-                target = [item for l in values for item in l]
+                # flatten the 'values' list: [['a'], ['b']] => ['a', 'b']
+                target = [item for sublist in values for item in sublist]
                 any_accepted = False
                 for file in target:
                     accepted = False
@@ -98,17 +105,16 @@ class FontsProfile(Profile):
                             any_accepted = True
                     if not accepted:
                         logging.info(
-                            f"Skipping '{file}' as it does not"
-                            f" seem to be accepted by this profile."
+                            "Skipping '{}' as it does not"
+                            " seem to be accepted by this profile.",
+                            file,
                         )
                 if not any_accepted:
                     raise ValueValidationError("No applicable files found")
 
         argument_parser.add_argument(
             "files",
-            # To allow optional commands like "-L" to work without other input
-            # files:
-            nargs="*",
+            nargs="*",  # allow no input files; needed for -L/--list-checks option
             type=get_files,
             action=MergeAction,
             help="file path(s) to check. Wildcards like *.ttf are allowed.",
@@ -139,11 +145,8 @@ class FontsProfile(Profile):
 
 
 def profile_factory(**kwds):
-    from fontbakery.profiles.shared_conditions import ttFont
-
     profile = FontsProfile(
         iterargs=FontsProfile._iterargs(),
-        conditions={ttFont.name: ttFont},
         derived_iterables={"ttFonts": ("ttFont", True)},
         expected_values=FontsProfile._expected_values(),
         **kwds,

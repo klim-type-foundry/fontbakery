@@ -1,5 +1,5 @@
 """
-Font Bakery callable is the wrapper for your custom check code.
+FontBakery callable is the wrapper for your custom check code.
 
 
 Separation of Concerns Disclaimer:
@@ -14,6 +14,7 @@ Conditions) and MAYBE in *customized* reporters e.g. subclasses.
 import inspect
 
 from functools import wraps, update_wrapper
+from typing import Callable
 
 
 def cached_getter(func):
@@ -33,6 +34,8 @@ def cached_getter(func):
 
 
 class FontbakeryCallable:
+    __wrapped__: Callable
+
     def __init__(self, func):
         self._args = None
         self._mandatoryArgs = None
@@ -61,7 +64,7 @@ class FontbakeryCallable:
     @property
     @cached_getter
     def mandatoryArgs(self):
-        args = list()
+        args = []
         # make follow_wrapped=True explicit, even though it is the default!
         sig = inspect.signature(self, follow_wrapped=True)
         for name, param in sig.parameters.items():
@@ -84,7 +87,7 @@ class FontbakeryCallable:
     @property
     @cached_getter
     def optionalArgs(self):
-        args = list()
+        args = []
         # make follow_wrapped=True explicit, even though it is the default!
         sig = inspect.signature(self, follow_wrapped=True)
         for name, param in sig.parameters.items():
@@ -165,7 +168,7 @@ class FontBakeryCheck(FontbakeryCallable):
     def __init__(
         self,
         checkfunc,
-        id,
+        id,  # pylint:disable=redefined-builtin
         description=None,  # short text, this is mandatory
         documentation=None,
         name=None,  # very short text
@@ -177,8 +180,9 @@ class FontBakeryCheck(FontbakeryCallable):
         proponent=None,  # Name Surname (@github_username)
         suggested_profile=None,  # A suggestion of which fontbakery profile
         # should this check be added to once implemented.
+        experimental=False,  # Experimental checks won't affect the process exit code
         severity=None,  # numeric value from 1=min to 10=max, denoting check severity
-        configs=None,  # items from config[self.id] to inject into the check's namespace.
+        configs=None,  # items from config[self.id] to inject into the check's namespace
         misc_metadata=None,  # Miscelaneous free-form metadata fields
         # Some of them may be promoted to 1st-class metadata fields
         # if they start being used by the check-runner.
@@ -243,12 +247,13 @@ class FontBakeryCheck(FontbakeryCallable):
         self.configs = configs
         self.proposal = proposal
         self.proponent = proponent
+        self.experimental = experimental
         self.suggested_profile = suggested_profile
         self.severity = severity
         if not self.description:
             raise TypeError("{} needs a description.".format(type(self).__name__))
 
-    # This was problematic. See: https://github.com/googlefonts/fontbakery/issues/2194
+    # This was problematic. See: https://github.com/fonttools/fontbakery/issues/2194
     # def __str__(self):
     #  return self.id
 
@@ -259,16 +264,8 @@ def condition(*args, **kwds):
     Requires all arguments of FontBakeryCondition but not `func`
     which is passed via the decorator syntax.
     """
-    if len(args) == 1 and len(kwds) == 0 and callable(args[0]):
-        # used as `@decorator`
-        func = args[0]
-        return FontBakeryCondition(func)
-    else:
-        # used as `@decorator()` maybe with args
-        def wrapper(func):
-            return FontBakeryCondition(func, *args, **kwds)
-
-    return wrapper
+    func = args[0]
+    return FontBakeryCondition(func)
 
 
 def check(*args, **kwds):

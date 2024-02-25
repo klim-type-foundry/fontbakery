@@ -6,9 +6,9 @@ from unittest.mock import patch
 
 from fontTools.ttLib import TTFont
 from fontTools.ttLib.tables.otTables import AxisValueRecord
-from requests.exceptions import ConnectionError
+import requests
 
-from fontbakery.checkrunner import WARN, FAIL, PASS, SKIP
+from fontbakery.status import WARN, FAIL, PASS, SKIP
 from fontbakery.codetesting import (
     assert_PASS,
     assert_results_contain,
@@ -61,7 +61,7 @@ def test_get_family_checks():
 def test_profile_check_set():
     """Confirm that the profile has the correct number of checks and the correct
     set of check IDs."""
-    assert len(SET_EXPLICIT_CHECKS) == 80
+    assert len(SET_EXPLICIT_CHECKS) == 81
     explicit_with_overrides = sorted(
         f"{check_id}{OVERRIDE_SUFFIX}" if check_id in OVERRIDDEN_CHECKS else check_id
         for check_id in SET_EXPLICIT_CHECKS
@@ -266,7 +266,7 @@ def test_check_override_family_win_ascent_and_descent():
     msg = assert_results_contain(check(ttFont), WARN, "descent")
     assert msg == (
         "OS/2.usWinDescent value should be equal or greater than 292,"
-        " but got 282 instead."
+        " but got 282 instead"
     )
 
     # Now change 'OS/2.usWinDescent' to be more than double 'head.yMin'.
@@ -325,7 +325,7 @@ def test_check_override_varfont_valid_default_instance_nameids():
     """Check that overriden tests yield WARN instead of FAIL"""
     check = CheckTester(
         adobefonts_profile,
-        f"com.adobe.fonts/check/varfont/valid_default_instance_nameids{OVERRIDE_SUFFIX}",
+        f"com.adobe.fonts/check/varfont/valid_default_instance_nameids{OVERRIDE_SUFFIX}",  # noqa:E501 pylint:disable=C0301
     )
 
     ttFont_1 = TTFont(TEST_FILE("cabinvf/Cabin[wdth,wght].ttf"))
@@ -416,20 +416,7 @@ def test_check_override_weight_class_fvar():
     )
 
 
-@patch("freetype.Face", side_effect=ImportError)
-def test_check_override_freetype_rasterizer(mock_import_error):
-    """Check that overridden test yields FAIL rather than SKIP."""
-    check = CheckTester(
-        adobefonts_profile,
-        f"com.adobe.fonts/check/freetype_rasterizer{OVERRIDE_SUFFIX}",
-    )
-
-    font = TEST_FILE("cabin/Cabin-Regular.ttf")
-    msg = assert_results_contain(check(font), FAIL, "freetype-not-installed")
-    assert "FreeType is not available" in msg
-
-
-@patch("requests.get", side_effect=ConnectionError)
+@patch("requests.get", side_effect=requests.exceptions.ConnectionError)
 def test_check_override_fontbakery_version(mock_get):
     """Check that overridden test yields SKIP rather than FAIL."""
     check = CheckTester(

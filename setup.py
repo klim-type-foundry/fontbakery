@@ -23,9 +23,25 @@ except IOError:
 
 
 FONTTOOLS_VERSION = ">=4.39.0"  # Python 3.8+ required
-UFO2FT_VERSION = ">=2.25.2"
+UFO2FT_VERSION = ">=2.25.2"  # 2.25.2 updated the script lists for Unicode 14.0
+VHARFBUZZ_VERSION = ">=0.2.0"  # 0.2.0 had an API update
+BEAUTIFULSOUP4_VERSION = ">=4.7.1"  # For parsing registered vendor IDs
+# com.google.fonts/check/vendor_id produces an ERROR if Beautiful Soup 4
+# version 4.0.1 to 4.6.1 or 4.7.0 is installed because of bugs in Beautiful Soup
+# (see https://github.com/fonttools/fontbakery/issues/4270)
+
 
 # Profile-specific dependencies:
+shaping_extras = [
+    "collidoscope>=0.5.2",  # 0.5.2 added Python 3.11 wheels
+    # (see https://github.com/fonttools/fontbakery/issues/3970)
+    "stringbrewer",
+    f"ufo2ft{UFO2FT_VERSION}",
+    f"vharfbuzz{VHARFBUZZ_VERSION}",
+    "shaperglot>=0.3.0",  # versions prior to v0.3.0 had too stric dependency rules
+    # for other deps such as protobuf, making it harder satisfy all dependencies.
+]
+
 ufo_sources_extras = [
     "defcon",
     f"fontTools[ufo]{FONTTOOLS_VERSION}",
@@ -33,47 +49,100 @@ ufo_sources_extras = [
     "ufolint",
 ]
 
-googlefonts_extras = [
-    "axisregistry>=0.3.0",
-    "beautifulsoup4",  # For parsing registered vendor IDs from Microsoft's webpage
-    "dehinter>=3.1.0",  # 3.1.0 added dehinter.font.hint function
-    "font-v",
-    f"fontTools[lxml,unicode]{FONTTOOLS_VERSION}",
-    "gflanguages>=0.3.0",  # There was an api simplification/update on v0.3.0
-    # (see https://github.com/googlefonts/gflanguages/pull/7)
-    "glyphsets>=0.5.0",
-    "protobuf>=3.7.0, <4",  # 3.7.0 fixed a bug on parsing some METADATA.pb files.
-    # We cannot use v4 because our protobuf files have been compiled with v3.
-    # (see https://github.com/googlefonts/fontbakery/issues/2200)
-] + ufo_sources_extras
+adobefonts_extras = []
+
+
+# These Google Fonts profile dependencies contain data that is critical to
+# always be up-to-date, so we treat any update to these deps the same way we would
+# deal with API-breaking updates. Only the latest released version is acceptable:
+googlefonts_always_latest = [
+    "axisregistry>=0.4.5",
+    "gflanguages>=0.5.15",
+    "gfsubsets>=2024.1.22.post2",
+    "glyphsets>=0.6.11",
+    "shaperglot>=0.3.1",
+]
+
+
+googlefonts_extras = (
+    [
+        f"beautifulsoup4{BEAUTIFULSOUP4_VERSION}",
+        "dehinter>=3.1.0",  # 3.1.0 added dehinter.font.hint function
+        "font-v>=0.6.0",  # com.google.fonts/check/fontv produces an ERROR with font-v
+        # version 0.5.0 or earlier because it uses the method
+        # FontVersion.get_name_id5_version_string which was added in version 0.6.0
+        f"fontTools[lxml,unicode]{FONTTOOLS_VERSION}",
+        # (see https://github.com/googlefonts/gflanguages/pull/7)
+        "protobuf>=3.7.0, <4",  # 3.7.0 fixed a bug on parsing some METADATA.pb files.
+        # We cannot use v4 because our protobuf files have been compiled with v3.
+        # (see https://github.com/fonttools/fontbakery/issues/2200)
+        f"vharfbuzz{VHARFBUZZ_VERSION}",
+    ]
+    + googlefonts_always_latest
+    + shaping_extras
+    + ufo_sources_extras
+)
+
+fontwerk_extras = googlefonts_extras
+
+notofonts_extras = googlefonts_extras
+
+typenetwork_extras = [
+    f"beautifulsoup4{BEAUTIFULSOUP4_VERSION}",
+    f"ufo2ft{UFO2FT_VERSION}",
+    f"vharfbuzz{VHARFBUZZ_VERSION}",
+    "uharfbuzz",
+    "shaperglot>=0.3.1",
+]
+
+iso15008_extras = [
+    "uharfbuzz",
+]
 
 fontval_extras = [
     "lxml",
 ]
 
-docs_extras = []
+docs_extras = [
+    "recommonmark",
+    "sphinx >= 1.4",
+    "sphinx_rtd_theme",
+]
 
-all_extras = set(docs_extras + googlefonts_extras + fontval_extras + ufo_sources_extras)
+all_extras = set(
+    docs_extras
+    + adobefonts_extras
+    + fontval_extras
+    + fontwerk_extras
+    + googlefonts_extras
+    + iso15008_extras
+    + notofonts_extras
+    + shaping_extras
+    + ufo_sources_extras
+)
 
 setup(
     name="fontbakery",
     use_scm_version={"write_to": "Lib/fontbakery/_version.py"},
-    url="https://github.com/googlefonts/fontbakery/",
+    url="https://github.com/fonttools/fontbakery/",
     description="A font quality assurance tool for everyone",
     long_description=readme,
     long_description_content_type="text/markdown",
     author=(
-        "Font Bakery authors and contributors:"
+        "FontBakery authors and contributors:"
+        " Chris Simpkins,"
         " Dave Crossland,"
         " Felipe Sanches,"
+        " Jens Kutilek,"
         " Lasse Fister,"
         " Marc Foley,"
+        " Miguel Sousa,"
         " Nikolaus Waxweiler,"
-        " Chris Simpkins,"
-        " Jens Kutilek,"
-        " Vitaly Volkov,"
+        " Rosalie Wagner,"
         " Simon Cozens,"
-        " Miguel Sousa"
+        " Vitaly Volkov,"
+        " Viviana Monsalve,"
+        " Yanone"
     ),
     author_email="juca@members.fsf.org",
     package_dir={"": "Lib"},
@@ -82,10 +151,12 @@ setup(
         "fontbakery.reporters",
         "fontbakery.profiles",
         "fontbakery.commands",
+        "fontbakery.sphinx_extensions",  # for FontBakery's documentation at ReadTheDocs
     ],
     package_data={
         "fontbakery": [
             "data/*.cache",
+            "data/*.base64",
             "data/googlefonts/*_exceptions.txt",
             "reporters/html_app_frontend/dist/index.html",
         ]
@@ -101,52 +172,58 @@ setup(
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.12",
     ],
     python_requires=">=3.8",
     setup_requires=[
         "setuptools>=61.2",
-        "setuptools_scm[toml]>=6.2",
+        "setuptools_scm[toml]>=6.2, !=8.0.0",  # version 8.0.0 had a bug as described at
+        # https://github.com/pypa/setuptools_scm/issues/905
     ],
     install_requires=[
-        # --- core dependencies
+        # ---
+        # core dependencies
         f"fontTools{FONTTOOLS_VERSION}",
         "freetype-py!=2.4.0",  # Avoiding 2.4.0 due to seg-fault described at
-        # https://github.com/googlefonts/fontbakery/issues/4143
-        "munkres",  # For interpolation compatibility checking (fontTools dependency)
+        # https://github.com/fonttools/fontbakery/issues/4143
         "opentypespec",
         "opentype-sanitizer>=7.1.9",  # 7.1.9 fixes caret value format = 3 bug
         # (see https://github.com/khaledhosny/ots/pull/182)
-        #
-        # --- for parsing Configuration files
+        # ---
+        # fontTools extra that is needed by 'interpolation_issues' check in
+        # Universal profile
+        "munkres",
+        # ---
+        # for parsing Configuration files (Lib/fontbakery/configuration.py)
         "PyYAML",
         "toml",
-        #
-        # --- used by Reporters
-        "cmarkgfm",
-        "rich",
-        #
-        # --- for checking FontBakery's version
-        "packaging",  # Universal profile
-        "pip-api",  # Universal profile
-        "requests",  # Universal & googlefonts profiles
-        #
-        # TODO: Try to split the packages below into feature-specific extras.
-        "beziers>=0.5.0",  # Opentype, iso15008, Shaping (& Universal) profiles
-        # Uses new fontTools glyph outline access
-        "collidoscope>=0.5.2",  # Shaping (& Universal) profiles
-        # 0.5.1 did not yet support python 3.11
-        # (see https://github.com/googlefonts/fontbakery/issues/3970)
-        "stringbrewer",  # Shaping (& Universal) profiles
-        f"ufo2ft{UFO2FT_VERSION}",  # Shaping
-        # 2.25.2 updated the script lists for Unicode 14.0
-        "vharfbuzz>=0.2.0",  # Googlefonts, Shaping (& Universal) profiles
-        # v0.2.0 had an API update
+        # ---
+        # used by Reporters (Lib/fontbakery/reporters)
+        "cmarkgfm>=0.4",  # (html.py) Doing anything with Font Bakery with
+        # a version of cmarkgfm older than 0.4 fails with:
+        # ImportError: cannot import name 'Options' from 'cmarkgfm.cmark'
+        "rich",  # (terminal.py)
+        # ---
+        # used by 'fontbakery_version' check in Universal profile
+        "packaging",
+        "pip-api",
+        "requests",  # also used by Google Fonts profile
+        # ---
+        # used by 'italic_angle' check in OpenType profile ('post' table);
+        # also used by ISO 15008 profile
+        "beziers>=0.5.0",  # 0.5.0 uses new fontTools glyph outline access
     ],
     extras_require={
         "all": all_extras,
         "docs": docs_extras,
-        "googlefonts": googlefonts_extras,
+        "adobefonts": adobefonts_extras,
         "fontval": fontval_extras,
+        "fontwerk": fontwerk_extras,
+        "googlefonts": googlefonts_extras,
+        "notofonts": notofonts_extras,
+        "typenetwork": typenetwork_extras,
+        "iso15008": iso15008_extras,
+        "shaping": shaping_extras,
         "ufo-sources": ufo_sources_extras,
     },
     entry_points={

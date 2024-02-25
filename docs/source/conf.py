@@ -25,9 +25,9 @@ copyright = "2023 The Font Bakery Authors"
 author = "The Font Bakery Authors"
 
 # The short X.Y version
-version = "0.8"
+version = "0.10"
 # The full version, including alpha/beta/rc tags
-release = "0.8.13"
+release = "0.10.9"
 
 
 # -- General configuration ---------------------------------------------------
@@ -189,9 +189,9 @@ def linkcode_resolve(domain, info):
     #
     # On GitHub, we can link to a tag i.e. a release tag such as "v0.7.2"
     # as seen on this URL:
-    # https://github.com/googlefonts/fontbakery/tree/v0.7.2/Lib/fontbakery/profiles
+    # https://github.com/fonttools/fontbakery/tree/v0.7.2/Lib/fontbakery/profiles
 
-    tree = "v0.8.13"
+    tree = "v0.10.9"
     # It's not planned for us to get the line number :-(
     # I had to hammer this data into the info.
     if "lineno" in info:
@@ -199,6 +199,6 @@ def linkcode_resolve(domain, info):
     else:
         lineno = ""
 
-    return "https://github.com/googlefonts/fontbakery/tree/{}/Lib/{}.py{}".format(
+    return "https://github.com/fonttools/fontbakery/tree/{}/Lib/{}.py{}".format(
         tree, filename, lineno
     )

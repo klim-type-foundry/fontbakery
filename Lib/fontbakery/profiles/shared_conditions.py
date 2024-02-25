@@ -5,9 +5,12 @@ from collections import Counter
 from fontbakery.callable import condition
 
 # used to inform get_module_profile whether and how to create a profile
-from fontbakery.fonts_profile import (  # NOQA pylint: disable=cyclic-import
-    profile_factory,
-)
+from fontbakery.fonts_profile import profile_factory  # noqa:F401 pylint:disable=W0611
+
+
+@condition
+def network(config):
+    return not config["skip_network"]
 
 
 @condition
@@ -94,7 +97,7 @@ def variable_font_filename(ttFont):
 
     familynames = get_name_entry_strings(ttFont, NameID.FONT_FAMILY_NAME)
     typo_familynames = get_name_entry_strings(ttFont, NameID.TYPOGRAPHIC_FAMILY_NAME)
-    if familynames == []:
+    if not familynames:
         return None
 
     familyname = typo_familynames[0] if typo_familynames else familynames[0]
@@ -107,35 +110,6 @@ def variable_font_filename(ttFont):
     tags.sort()
     tags = "[{}]".format(",".join(tags))
     return f"{familyname}{tags}.ttf"
-
-
-@condition
-def designSpace(designspace):
-    """
-    Given a filepath for a designspace file, parse it
-    and return a DesignSpaceDocument, which is
-    'an object to read, write and edit
-    interpolation systems for typefaces'.
-    """
-    if designspace:
-        from fontTools.designspaceLib import DesignSpaceDocument
-        import defcon
-
-        DS = DesignSpaceDocument.fromfile(designspace)
-        DS.loadSourceFonts(defcon.Font)
-        return DS
-
-
-@condition
-def designspace_sources(designSpace):
-    """
-    Given a DesignSpaceDocument object,
-    return a set of UFO font sources.
-    """
-    if designSpace:
-        import defcon
-
-        return designSpace.loadSourceFonts(defcon.Font)
 
 
 @condition
@@ -158,7 +132,8 @@ def sibling_directories(family_directory):
     smarter filesystem lookup procedures or even by letting the user feed explicit
     sibling family paths.
 
-    This function returs a list of paths to directories where related font files were detected.
+    This function returs a list of paths to directories where related font files were
+    detected.
     """
     SIBLING_SUFFIXES = ["sans", "sc", "narrow", "text", "display", "condensed"]
 
@@ -229,7 +204,7 @@ def ligatures(ttFont):
                                                 lig.Component
                                             )
         return all_ligatures
-    except:
+    except (AttributeError, IndexError):
         return -1  # Indicate fontTools-related crash...
 
 
@@ -251,7 +226,7 @@ def ligature_glyphs(ttFont):
                                         if lig.LigGlyph not in all_ligature_glyphs:
                                             all_ligature_glyphs.append(lig.LigGlyph)
         return all_ligature_glyphs
-    except:
+    except (AttributeError, IndexError):
         return -1  # Indicate fontTools-related crash...
 
 
@@ -364,11 +339,6 @@ def is_variable_font(ttFont):
 
 
 @condition
-def is_not_variable_font(ttFont):
-    return "fvar" not in ttFont.keys()
-
-
-@condition
 def VFs(ttFonts):
     """Returns a list of font files which are recognized as variable fonts"""
     return [ttFont for ttFont in ttFonts if is_variable_font(ttFont)]
@@ -403,6 +373,14 @@ def grad_axis(ttFont):
     if "fvar" in ttFont:
         for axis in ttFont["fvar"].axes:
             if axis.axisTag == "GRAD":
+                return axis
+
+
+@condition
+def wght_axis(ttFont):
+    if "fvar" in ttFont:
+        for axis in ttFont["fvar"].axes:
+            if axis.axisTag == "wght":
                 return axis
 
 
@@ -538,18 +516,21 @@ def unicoderange(ttFont):
 
 
 @condition
-def is_cjk_font(ttFont):
+def is_claiming_to_be_cjk_font(ttFont):
     """Test font object to confirm that it meets our definition of a CJK font file.
 
-    The definition is met if any of the following conditions are True:
+    We do this in two ways: in some cases, we are testing the *metadata*,
+    i.e. what the font claims about itself, in which case the definition is
+    met if any of the following conditions are True:
+
       1. The font has a CJK code page bit set in the OS/2 table
       2. The font has a CJK Unicode range bit set in the OS/2 table
-      3. The font has any CJK Unicode code points defined in the cmap table
+
+    See below for another way of testing this.
     """
     from fontbakery.constants import (
         CJK_CODEPAGE_BITS,
         CJK_UNICODE_RANGE_BITS,
-        CJK_UNICODE_RANGES,
     )
 
     if not has_os2_table(ttFont):
@@ -576,15 +557,21 @@ def is_cjk_font(ttFont):
             if os2.ulUnicodeRange3 & (1 << (bit - 64)):
                 return True
 
-    # defined CJK Unicode code point in cmap table checks
-    cmap = ttFont.getBestCmap()
-    for unicode_range in CJK_UNICODE_RANGES:
-        for x in range(unicode_range[0], unicode_range[1] + 1):
-            if int(x) in cmap:
-                return True
-
     # default, return False if the above checks did not identify a CJK font
     return False
+
+
+@condition
+def is_cjk_font(ttFont):
+    """
+    The `is_claiming_to_be_cjk_font` condition looks up the font's metadata to see if
+    it is claiming to be a CJK font. But the metadata may be wrong, and the correctness
+    of the metadata is something what we want to check!
+    We also want to know if the font really is a CJK font, i.e. it contains a
+    significant number of CJK characters. We say that *this* definition is met if the
+    font has more than 150 CJK Unicode code points defined in the cmap table.
+    """
+    return len(get_cjk_glyphs(ttFont)) > 150
 
 
 @condition
@@ -633,7 +620,7 @@ def is_indic_font(ttFont):
 
 
 def keyword_in_full_font_name(ttFont, keyword):
-    from fontbakery.constants import MacStyle, NameID
+    from fontbakery.constants import NameID
 
     for entry in ttFont["name"].names:
         if (
@@ -665,13 +652,3 @@ def is_bold(ttFont):
         or ("head" in ttFont and ttFont["head"].macStyle & MacStyle.BOLD)
         or keyword_in_full_font_name(ttFont, "bold")
     )
-
-
-@condition
-def is_not_italic(ttFont):
-    return not is_italic(ttFont)
-
-
-@condition
-def is_not_bold(ttFont):
-    return not is_bold(ttFont)
