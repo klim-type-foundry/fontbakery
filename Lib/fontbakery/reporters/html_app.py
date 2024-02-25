@@ -9,7 +9,7 @@ PRODUCTION_JS = True
 
 class HtmlAppJsonEncoder(json.JSONEncoder):
     def default(self, o):
-        if issubclass(o, FontBakeryRunnerError):
+        if issubclass(o, (FontBakeryRunnerError,)):
             return str(o)
         return super().default(o)
 
